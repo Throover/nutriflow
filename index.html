@@ -1,0 +1,1901 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>NutriFlow — Suivi nutritionnel intelligent</title>
+
+  <!-- PWA / iOS Home Screen -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="NutriFlow">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#16a34a">
+  <meta name="description" content="Votre compagnon nutritionnel intelligent — suivi, planning et bien-être">
+
+  <!-- Icône pour l'écran d'accueil iOS -->
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%2316a34a'/><text y='.85em' font-size='72' x='14'>🌿</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>">
+
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/recharts@2.12.7/umd/Recharts.min.js"></script>
+  <script src="https://unpkg.com/lucide-react@0.383.0/dist/umd/lucide-react.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,800&family=DM+Sans:wght@400;500;700&display=swap');
+    * { font-family: 'DM Sans', sans-serif; }
+    h1, h2, h3, h4, h5, h6 { font-family: 'Fraunces', serif; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      padding: 0;
+      /* Support encoche iPhone (Dynamic Island, notch) */
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+    }
+    /* Évite le rebond de scroll iOS */
+    html, body { height: 100%; overflow-x: hidden; }
+    /* Tap highlight désactivé sur mobile */
+    * { -webkit-tap-highlight-color: transparent; }
+    /* Inputs et boutons sans style natif iOS */
+    input, button, select, textarea { -webkit-appearance: none; appearance: none; }
+    input[type="date"], input[type="time"] { -webkit-appearance: textfield; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script>
+  // Error boundary
+  window.onerror = function(msg, url, lineNo, columnNo, error) {
+    var el = document.getElementById('root');
+    el.innerHTML = '<div style="padding:40px;font-family:monospace;background:#fee;color:#900;border:2px solid #f00;margin:20px;border-radius:12px;"><h2>Erreur</h2><pre>' + msg + '\nLine: ' + lineNo + '\nCol: ' + columnNo + (error && error.stack ? '\n\n' + error.stack : '') + '</pre></div>';
+    return false;
+  };
+
+  // Setup module system shim
+  var exports = {};
+  var module = { exports: exports };
+
+  // Setup require shim for compiled modules
+  function require(mod) {
+    if (mod === 'react') return React;
+    if (mod === 'lucide-react') return window.lucideReact || window.LucideReact || {};
+    if (mod === 'recharts') return window.Recharts || {};
+    console.warn('Unknown module:', mod);
+    return {};
+  }
+
+  // Ensure React globals are accessible
+  React.default = React;
+
+  // Map Lucide icons
+  (function() {
+    var LR = window.lucideReact || window.LucideReact || {};
+    // Create fallback icon component
+    var fallbackIcon = function(props) {
+      return React.createElement('span', {style: {display: 'inline-block', width: (props && props.size || 24)+'px', height: (props && props.size || 24)+'px', textAlign: 'center', lineHeight: (props && props.size || 24)+'px'}}, '•');
+    };
+
+    // All icons used in the app
+    var iconNames = ['Heart','Home','Calendar','ShoppingCart','BarChart2','Settings','Eye','EyeOff','ChevronRight','ChevronLeft','Plus','X','Trash2','Check','Lock','LogOut','Download','Upload','TrendingUp','Flame','AlertCircle','Loader','Apple','Salad','Utensils','Zap','Moon','Sun','Search','Edit2','Save','Copy','RefreshCw','Menu','Grid3x3','List'];
+    iconNames.forEach(function(name) {
+      if (!LR[name]) {
+        LR[name] = fallbackIcon;
+      }
+    });
+    window.lucideReact = LR;
+    window.LucideReact = LR;
+  })();
+  </script>
+
+  <script>
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const react_1 = require("react");
+const lucide_react_1 = require("lucide-react");
+const recharts_1 = require("recharts");
+const NutriFlow = () => {
+    // Google Fonts injection
+    (0, react_1.useEffect)(() => {
+        if (!document.getElementById('google-fonts-nutriflow')) {
+            const style = document.createElement('style');
+            style.id = 'google-fonts-nutriflow';
+            style.innerHTML = `
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,800&family=DM+Sans:wght@400;500;700&display=swap');
+        * { font-family: 'DM Sans', sans-serif; }
+        h1, h2, h3, h4, h5, h6 { font-family: 'Fraunces', serif; }
+      `;
+            document.head.appendChild(style);
+        }
+    }, []);
+    // ===== STATE MANAGEMENT =====
+    const [currentScreen, setCurrentScreen] = (0, react_1.useState)('password'); // password, onboarding, app
+    const [password, setPassword] = (0, react_1.useState)('');
+    const [passwordError, setPasswordError] = (0, react_1.useState)('');
+    const [passwordVisible, setPasswordVisible] = (0, react_1.useState)(false);
+    const [onboardingStep, setOnboardingStep] = (0, react_1.useState)('intro');
+    const [onboardingData, setOnboardingData] = (0, react_1.useState)({
+        prenom: '', dateNaissance: '', sexe: '', photo: '',
+        taille: '', poids: '', masseGrasse: '', masseGrasseUnit: '%',
+        masseMaigre: '', masseMaigreUnit: '%',
+        poidsTarget: '', masseGrasseTarget: '', masseGrasseTargetUnit: '%',
+        masseMaigreTarget: '', masseMaigreTargetUnit: '%',
+        objectif: '', rythmePreset: '', dateTarget: '',
+        regimes: [], allergies: [], allergySearch: '',
+        alimentsAdores: '', alimentsDetestes: '',
+        selectedMeals: ['petit-dejeuner', 'dejeuner', 'diner'],
+        mealTimes: { 'petit-dejeuner': '08:00', 'dejeuner': '12:30', 'gouter-am': '16:00', 'diner': '19:30', 'gouter-matin': '10:30' },
+        jeuneIntermittent: false, ifDuration: 0,
+        niveauActivite: '', typeTravail: '', horairesTravailDebut: '09:00', horairesTravailFin: '18:00',
+        joursTravail: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven'],
+        sports: [], sportSearch: '', marcheKm: 3,
+        styleCuisine: '', budget: 80, tempsCuisineSemaine: 30, tempsCuisineWeekend: 120,
+        niveauCuisine: '', equipements: [],
+        complements: false, complementsSelected: [], complementSearch: '',
+        pays: 'France', paysSearch: 'France', ville: '', villeSearch: '',
+        initialInventory: [],
+        healthPermissions: false,
+    });
+    const [userProfile, setUserProfile] = (0, react_1.useState)(null);
+    const [activeSection, setActiveSection] = (0, react_1.useState)('home');
+    const [darkMode, setDarkMode] = (0, react_1.useState)(false);
+    const [toast, setToast] = (0, react_1.useState)(null);
+    const [gamification, setGamification] = (0, react_1.useState)({ xp: 0, level: 1, badges: [] });
+    // Planning state
+    const [planningTab, setPlanningTab] = (0, react_1.useState)('calendar'); // calendar, kanban, list
+    const [weeklyPlanning, setWeeklyPlanning] = (0, react_1.useState)({});
+    const [selectedMealType, setSelectedMealType] = (0, react_1.useState)(null);
+    const [showMealModal, setShowMealModal] = (0, react_1.useState)(false);
+    const [mealSearch, setMealSearch] = (0, react_1.useState)('');
+    const [mealSearchResults, setMealSearchResults] = (0, react_1.useState)([]);
+    const [searchingMeal, setSearchingMeal] = (0, react_1.useState)(false);
+    // Fridge & Shopping
+    const [fridgeTab, setFridgeTab] = (0, react_1.useState)('fridge');
+    const [fridgeInventory, setFridgeInventory] = (0, react_1.useState)([]);
+    const [shoppingList, setShoppingList] = (0, react_1.useState)([]);
+    const [fridgeSearch, setFridgeSearch] = (0, react_1.useState)('');
+    const [fridgeSearchResults, setFridgeSearchResults] = (0, react_1.useState)([]);
+    const [searchingFridge, setSearchingFridge] = (0, react_1.useState)(false);
+    // Daily logs & tracking
+    const [dailyLogs, setDailyLogs] = (0, react_1.useState)([]);
+    const [showLogModal, setShowLogModal] = (0, react_1.useState)(false);
+    const [newLog, setNewLog] = (0, react_1.useState)({ weight: '', bodyFat: '', energy: 5, sleep: 5, notes: '' });
+    // Settings
+    const [apiKey, setApiKey] = (0, react_1.useState)('');
+    const [editingProfile, setEditingProfile] = (0, react_1.useState)(false);
+    const [showResetConfirm, setShowResetConfirm] = (0, react_1.useState)(false);
+    const [showSettingsPassword, setShowSettingsPassword] = (0, react_1.useState)(false);
+    const [loadingAI, setLoadingAI] = (0, react_1.useState)(false);
+    // ===== INITIALIZATION =====
+    (0, react_1.useEffect)(() => {
+        const savedPassword = localStorage.getItem('nf_app_password') || 'Alexandre123';
+        localStorage.setItem('nf_app_password', savedPassword);
+        const savedTheme = localStorage.getItem('nf_app_theme');
+        if (savedTheme === 'dark')
+            setDarkMode(true);
+        const savedProfile = localStorage.getItem('nf_user_profile');
+        if (savedProfile) {
+            const profile = JSON.parse(savedProfile);
+            setUserProfile(profile);
+            setCurrentScreen('app');
+        }
+        const savedOnboarding = localStorage.getItem('nf_onboarding_done');
+        if (savedPassword && !savedOnboarding) {
+            setCurrentScreen('onboarding');
+        }
+        const savedGamification = localStorage.getItem('nf_gamification');
+        if (savedGamification) {
+            setGamification(JSON.parse(savedGamification));
+        }
+        const savedWeeklyPlanning = localStorage.getItem('nf_weekly_planning');
+        if (savedWeeklyPlanning) {
+            setWeeklyPlanning(JSON.parse(savedWeeklyPlanning));
+        }
+        const savedFridge = localStorage.getItem('nf_fridge_inventory');
+        if (savedFridge) {
+            setFridgeInventory(JSON.parse(savedFridge));
+        }
+        const savedShopping = localStorage.getItem('nf_shopping_list');
+        if (savedShopping) {
+            setShoppingList(JSON.parse(savedShopping));
+        }
+        const savedLogs = localStorage.getItem('nf_daily_logs');
+        if (savedLogs) {
+            setDailyLogs(JSON.parse(savedLogs));
+        }
+        const savedApiKey = localStorage.getItem('nf_api_key');
+        if (savedApiKey) {
+            setApiKey(savedApiKey);
+        }
+    }, []);
+    // ===== HELPER FUNCTIONS =====
+    const showToast = (0, react_1.useCallback)((message, type = 'success') => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 3000);
+    }, []);
+    const calculateAge = (dateNaissance) => {
+        if (!dateNaissance)
+            return 0;
+        const birth = new Date(dateNaissance);
+        const today = new Date();
+        let age = today.getFullYear() - birth.getFullYear();
+        const m = today.getMonth() - birth.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birth.getDate()))
+            age--;
+        return age;
+    };
+    const calculateEstimatedDate = (currentWeight, targetWeight, ratePerWeek) => {
+        if (!currentWeight || !targetWeight || !ratePerWeek)
+            return '';
+        const delta = Math.abs(currentWeight - targetWeight);
+        const weeks = Math.ceil(delta / ratePerWeek);
+        const date = new Date();
+        date.setDate(date.getDate() + weeks * 7);
+        return date.toISOString().split('T')[0];
+    };
+    const calculateIFDuration = (mealTimes, selectedMeals) => {
+        if (selectedMeals.length < 2)
+            return 0;
+        const times = selectedMeals.map(m => mealTimes[m]).filter(Boolean).sort();
+        if (times.length < 2)
+            return 0;
+        const first = times[0].split(':').map(Number);
+        const last = times[times.length - 1].split(':').map(Number);
+        const eatingWindow = (last[0] * 60 + last[1]) - (first[0] * 60 + first[1]);
+        const fastingMinutes = 24 * 60 - eatingWindow - 60;
+        return Math.max(0, Math.round(fastingMinutes / 60));
+    };
+    const calculateTDEE = (profile) => {
+        const { poids, taille, dateNaissance, sexe, niveauActivite, marcheKm } = profile;
+        const age = calculateAge(dateNaissance || profile.age);
+        if (!poids || !taille || !age)
+            return 0;
+        let bmr;
+        if (sexe === 'Homme') {
+            bmr = 88.362 + 13.397 * poids + 4.799 * taille - 5.677 * age;
+        }
+        else {
+            bmr = 447.593 + 9.247 * poids + 3.098 * taille - 4.330 * age;
+        }
+        const activityMultipliers = { 'Sédentaire': 1.2, 'Léger': 1.375, 'Modéré': 1.55, 'Actif': 1.725, 'Très actif': 1.9 };
+        const multiplier = activityMultipliers[niveauActivite] || 1.55;
+        let tdee = bmr * multiplier;
+        tdee += marcheKm * 50;
+        return Math.round(tdee);
+    };
+    const calculateMacros = (tdee) => {
+        return {
+            proteines: Math.round((tdee * 0.30) / 4),
+            glucides: Math.round((tdee * 0.45) / 4),
+            lipides: Math.round((tdee * 0.25) / 9),
+        };
+    };
+    const getLevelInfo = (xp) => {
+        const levels = [
+            { name: 'Graine', minXp: 0, emoji: '🌱' },
+            { name: 'Pousse', minXp: 100, emoji: '🌿' },
+            { name: 'Apprenti', minXp: 300, emoji: '👨‍🍳' },
+            { name: 'Cuisinard', minXp: 600, emoji: '🧑‍🍳' },
+            { name: 'Équilibré', minXp: 1000, emoji: '⚖️' },
+            { name: 'Nutri Explorer', minXp: 1500, emoji: '🔍' },
+            { name: 'Nutritional Ninja', minXp: 2100, emoji: '🥋' },
+            { name: 'Chef Vert', minXp: 2800, emoji: '👨‍⚕️' },
+            { name: 'Macro Master', minXp: 3600, emoji: '💪' },
+            { name: 'Légende Végane', minXp: 4500, emoji: '👑' },
+        ];
+        for (let i = levels.length - 1; i >= 0; i--) {
+            if (xp >= levels[i].minXp) {
+                const nextLevel = levels[i + 1];
+                const nextMinXp = nextLevel ? nextLevel.minXp : levels[i].minXp + 1000;
+                const xpInLevel = xp - levels[i].minXp;
+                const xpNeeded = nextMinXp - levels[i].minXp;
+                return { ...levels[i], level: i + 1, xpInLevel, xpNeeded, nextLevel: nextLevel ? nextLevel.name : 'Max' };
+            }
+        }
+        return { name: 'Graine', minXp: 0, emoji: '🌱', level: 1, xpInLevel: 0, xpNeeded: 100, nextLevel: 'Pousse' };
+    };
+    const addXP = (amount, reason) => {
+        setGamification(prev => {
+            const updated = { ...prev, xp: prev.xp + amount };
+            localStorage.setItem('nf_gamification', JSON.stringify(updated));
+            return updated;
+        });
+        showToast(`+${amount} XP - ${reason}`, 'success');
+    };
+    const getSeasonalFoods = () => {
+        const seasonalData = {
+            1: [
+                { name: 'Poireau', emoji: '🧅', benefits: 'Riche en vitamine C', recipe: 'Gratin de poireaux' },
+                { name: 'Pomme', emoji: '🍎', benefits: 'Fibres digestives', recipe: 'Compote maison' },
+                { name: 'Betterave', emoji: '🫐', benefits: 'Énergie naturelle', recipe: 'Salade betterave' },
+                { name: 'Chou frisé', emoji: '🥬', benefits: 'Super-aliment', recipe: 'Smoothie vert' },
+                { name: 'Céleri-rave', emoji: '🌿', benefits: 'Minéraux', recipe: 'Purée crémeuse' },
+                { name: 'Endive', emoji: '🥬', benefits: 'Inuline', recipe: 'Endives braisées' },
+            ],
+            2: [
+                { name: 'Mâche', emoji: '🥗', benefits: 'Oméga-3', recipe: 'Salade simple' },
+                { name: 'Clémentine', emoji: '🍊', benefits: 'Vitamine C', recipe: 'Jus frais' },
+                { name: 'Topinambour', emoji: '🌿', benefits: 'Prébiotiques', recipe: 'Velouté' },
+                { name: 'Chou rouge', emoji: '🥬', benefits: 'Anthocyanes', recipe: 'Chou lacto-fermenté' },
+                { name: 'Panais', emoji: '🌿', benefits: 'Fibres', recipe: 'Rôti au four' },
+                { name: 'Poire', emoji: '🍐', benefits: 'Hydratation', recipe: 'Poached pear' },
+            ],
+            3: [
+                { name: 'Asperge verte', emoji: '🌿', benefits: 'Antioxydants', recipe: 'Sauté à l\'ail' },
+                { name: 'Épinard', emoji: '🥬', benefits: 'Fer', recipe: 'Quiche légère' },
+                { name: 'Radis', emoji: '🌿', benefits: 'Digestion', recipe: 'Radis beurre sel' },
+                { name: 'Rhubarbe', emoji: '🌿', benefits: 'Calcium', recipe: 'Compote sucre' },
+                { name: 'Artichaut', emoji: '🌿', benefits: 'Détox foie', recipe: 'À la vinaigrette' },
+                { name: 'Cresson', emoji: '🥗', benefits: 'Minéraux', recipe: 'Soupe crémeuse' },
+            ],
+            4: [
+                { name: 'Asperge blanche', emoji: '🌿', benefits: 'Dépurative', recipe: 'Holandaise' },
+                { name: 'Petits pois', emoji: '🫛', benefits: 'Protéines', recipe: 'À la française' },
+                { name: 'Fèves', emoji: '🫛', benefits: 'Zinc', recipe: 'Au bacon' },
+                { name: 'Fraise', emoji: '🍓', benefits: 'Vitamine C', recipe: 'Confiture' },
+                { name: 'Oseille', emoji: '🥬', benefits: 'Vitamine K', recipe: 'Sauce verte' },
+                { name: 'Navet', emoji: '🌿', benefits: 'Glucosinolates', recipe: 'Rôti miel' },
+            ],
+            5: [
+                { name: 'Tomate', emoji: '🍅', benefits: 'Lycopène', recipe: 'Sauce tomate' },
+                { name: 'Courgette', emoji: '🥒', benefits: 'Léger', recipe: 'Gratin' },
+                { name: 'Cerise', emoji: '🍒', benefits: 'Antioxydants', recipe: 'Nature' },
+                { name: 'Framboise', emoji: '🫐', benefits: 'Fibres', recipe: 'Confiture' },
+                { name: 'Pois gourmand', emoji: '🫛', benefits: 'Sucres lents', recipe: 'Sauté wok' },
+                { name: 'Aubergine', emoji: '🍆', benefits: 'Nasunine', recipe: 'Caviar d\'aubergine' },
+            ],
+            6: [
+                { name: 'Abricot', emoji: '🍑', benefits: 'Carotène', recipe: 'Confiture' },
+                { name: 'Melon', emoji: '🍈', benefits: 'Hydratation', recipe: 'Nature' },
+                { name: 'Poivron', emoji: '🫑', benefits: 'Vitamine C', recipe: 'Farci' },
+                { name: 'Myrtille', emoji: '🫐', benefits: 'Super-aliment', recipe: 'Tarte' },
+                { name: 'Concombre', emoji: '🥒', benefits: 'Hydratation', recipe: 'Salade fraîche' },
+                { name: 'Haricot vert', emoji: '🫘', benefits: 'Chlorophylle', recipe: 'À l\'ail' },
+            ],
+            7: [
+                { name: 'Pastèque', emoji: '🍉', benefits: 'Citrulline', recipe: 'Salade d\'été' },
+                { name: 'Pêche', emoji: '🍑', benefits: 'Sucres naturels', recipe: 'Nature' },
+                { name: 'Maïs', emoji: '🌽', benefits: 'Lutéine', recipe: 'Grillé beurre' },
+                { name: 'Nectarine', emoji: '🍑', benefits: 'Fibres', recipe: 'Tarte' },
+                { name: 'Groseille', emoji: '🍓', benefits: 'Vitamine C', recipe: 'Gelée' },
+                { name: 'Tomate', emoji: '🍅', benefits: 'Lycopène', recipe: 'Salade' },
+            ],
+            8: [
+                { name: 'Figue', emoji: '🍈', benefits: 'Magnésium', recipe: 'Nature ou confiture' },
+                { name: 'Prune', emoji: '🍑', benefits: 'Transit', recipe: 'Compote' },
+                { name: 'Raisin', emoji: '🍇', benefits: 'Resvératrol', recipe: 'Nature' },
+                { name: 'Mûre', emoji: '🫐', benefits: 'Anthocyanes', recipe: 'Confiture' },
+                { name: 'Courge spaghetti', emoji: '🎃', benefits: 'Satiétant', recipe: 'Rôtie' },
+                { name: 'Pêche blanche', emoji: '🍑', benefits: 'Doux', recipe: 'Nature' },
+            ],
+            9: [
+                { name: 'Pomme', emoji: '🍎', benefits: 'Pectine', recipe: 'Tarte' },
+                { name: 'Châtaigne', emoji: '🌰', benefits: 'Amidon', recipe: 'Rôtie' },
+                { name: 'Champignon', emoji: '🍄', benefits: 'Vitamine D', recipe: 'À la crème' },
+                { name: 'Brocoli', emoji: '🥦', benefits: 'Sulforaphane', recipe: 'Gratin' },
+                { name: 'Raisin', emoji: '🍇', benefits: 'Resvératrol', recipe: 'Raisins secs' },
+                { name: 'Coing', emoji: '🍐', benefits: 'Pectine', recipe: 'Pâte de coing' },
+            ],
+            10: [
+                { name: 'Citrouille', emoji: '🎃', benefits: 'Carotène', recipe: 'Soupe' },
+                { name: 'Chou-fleur', emoji: '🥦', benefits: 'Isothiocyanates', recipe: 'Rôti' },
+                { name: 'Butternut', emoji: '🧡', benefits: 'Sucres complexes', recipe: 'Velouté' },
+                { name: 'Kaki', emoji: '🍊', benefits: 'Tanins', recipe: 'Nature' },
+                { name: 'Fenouil', emoji: '🌿', benefits: 'Digestion', recipe: 'Rôti au citron' },
+                { name: 'Endive', emoji: '🥬', benefits: 'Inuline', recipe: 'Braisée' },
+            ],
+            11: [
+                { name: 'Mandarine', emoji: '🍊', benefits: 'Vitamine C', recipe: 'Jus' },
+                { name: 'Grenade', emoji: '🍎', benefits: 'Antioxydants', recipe: 'Nature' },
+                { name: 'Chou de Bruxelles', emoji: '🥦', benefits: 'Glucosinolates', recipe: 'Rôti balsamique' },
+                { name: 'Poireau', emoji: '🧅', benefits: 'Prébiotiques', recipe: 'Poireaux béchamel' },
+                { name: 'Pamplemousse', emoji: '🍊', benefits: 'Naringénine', recipe: 'Nature' },
+                { name: 'Carotte', emoji: '🥕', benefits: 'Bêta-carotène', recipe: 'Rôtie miel' },
+            ],
+            12: [
+                { name: 'Orange', emoji: '🍊', benefits: 'Vitamine C', recipe: 'Jus' },
+                { name: 'Clémentine', emoji: '🍊', benefits: 'Vitamine C', recipe: 'Nature' },
+                { name: 'Marron', emoji: '🌰', benefits: 'Amidon', recipe: 'Rôti' },
+                { name: 'Chou vert', emoji: '🥬', benefits: 'Calcium', recipe: 'Soupe' },
+                { name: 'Betterave', emoji: '🫐', benefits: 'Bétaïne', recipe: 'Rôtie' },
+                { name: 'Épinard', emoji: '🥬', benefits: 'Fer', recipe: 'Gratin' },
+            ],
+        };
+        const month = new Date().getMonth() + 1;
+        return seasonalData[month] || seasonalData[1];
+    };
+    const getTodaysCalories = () => {
+        const today = new Date().toISOString().split('T')[0];
+        const todaysMeals = weeklyPlanning[today] || [];
+        return todaysMeals.reduce((sum, meal) => sum + (meal.calories || 0), 0);
+    };
+    const getTodaysMacros = () => {
+        const today = new Date().toISOString().split('T')[0];
+        const todaysMeals = weeklyPlanning[today] || [];
+        return {
+            proteines: todaysMeals.reduce((sum, meal) => sum + (meal.proteines || 0), 0),
+            glucides: todaysMeals.reduce((sum, meal) => sum + (meal.glucides || 0), 0),
+            lipides: todaysMeals.reduce((sum, meal) => sum + (meal.lipides || 0), 0),
+        };
+    };
+    const getStreak = () => {
+        if (dailyLogs.length === 0)
+            return 0;
+        const sortedLogs = [...dailyLogs].sort((a, b) => new Date(b.date) - new Date(a.date));
+        let streak = 0;
+        let currentDate = new Date();
+        currentDate.setHours(0, 0, 0, 0);
+        for (let i = 0; i < sortedLogs.length; i++) {
+            const logDate = new Date(sortedLogs[i].date);
+            logDate.setHours(0, 0, 0, 0);
+            const daysDiff = (currentDate - logDate) / (1000 * 60 * 60 * 24);
+            if (daysDiff === i) {
+                streak++;
+            }
+            else {
+                break;
+            }
+        }
+        return streak;
+    };
+    // ===== ONBOARDING CONSTANTS =====
+    const ALLERGENES = [
+        'Gluten', 'Crustacés', 'Œufs', 'Poisson', 'Arachides', 'Soja', 'Lait',
+        'Fruits à coque', 'Céleri', 'Moutarde', 'Sésame', 'Sulfites', 'Lupin',
+        'Mollusques', 'FODMAP', 'Histamine', 'Fructose', 'Nickel', 'Salicylates'
+    ];
+    const COMPLEMENTS = [
+        'Vitamine B12', 'Vitamine D3', 'Vitamine C', 'Oméga-3', 'Zinc', 'Fer',
+        'Magnésium', 'Calcium', 'Iode', 'Sélénium', 'Protéines en poudre',
+        'Créatine', 'BCAA', 'Collagène', 'Probiotiques', 'Spiruline',
+        'Curcuma', 'Ashwagandha', 'Mélatonine', 'Coenzyme Q10'
+    ];
+    const SPORTS_LIST = [
+        'Course à pied', 'Musculation', 'Yoga', 'Natation', 'Cyclisme', 'Football',
+        'Basketball', 'Tennis', 'Boxe', 'Arts martiaux', 'Danse', 'Escalade',
+        'Randonnée', 'Pilates', 'CrossFit', 'HIIT', 'Aviron', 'Ski', 'Surf',
+        'Volleyball', 'Rugby', 'Golf', 'Équitation', 'Paddle', 'Badminton',
+        'Squash', 'Athlétisme', 'Gymnastique', 'Roller', 'Patinage',
+        'Ski de fond', 'Trail', 'Triathlon', 'Canoë-kayak', 'Plongée',
+        'Voile', 'Escrime', 'Judo', 'Karaté', 'Taekwondo'
+    ];
+    const WORK_TYPES = [
+        { value: 'bureau', label: '💻 Bureau / Télétravail', desc: 'Principalement assis devant un écran' },
+        { value: 'commerce', label: '🏪 Commerce / Vente', desc: 'Debout avec déplacements modérés' },
+        { value: 'sante', label: '🏥 Santé / Soins', desc: 'Debout, déplacements fréquents' },
+        { value: 'btp', label: '🏗️ BTP / Chantier', desc: 'Travail physique intensif' },
+        { value: 'enseignement', label: '📚 Enseignement', desc: 'Alternance assis/debout' },
+        { value: 'restauration', label: '🍽️ Restauration', desc: 'Debout, rythme soutenu' },
+        { value: 'transport', label: '🚛 Transport / Livraison', desc: 'Assis + manutention' },
+        { value: 'artisanat', label: '🔨 Artisanat', desc: 'Travail manuel, effort variable' },
+        { value: 'etudiant', label: '🎓 Étudiant', desc: 'Principalement assis' },
+        { value: 'retraite', label: '🌅 Retraité', desc: 'Rythme libre' },
+        { value: 'autre', label: '📋 Autre', desc: 'Précisez dans les notes' },
+    ];
+    const PAYS_LIST = [
+        '🇫🇷 France', '🇧🇪 Belgique', '🇨🇭 Suisse', '🇨🇦 Canada', '🇮🇹 Italie',
+        '🇪🇸 Espagne', '🇩🇪 Allemagne', '🇬🇧 Royaume-Uni', '🇵🇹 Portugal',
+        '🇳🇱 Pays-Bas', '🇱🇺 Luxembourg', '🇲🇦 Maroc', '🇹🇳 Tunisie',
+        '🇸🇳 Sénégal', '🇨🇮 Côte d\'Ivoire', '🇯🇵 Japon', '🇺🇸 États-Unis'
+    ];
+    const REGIMES_DATA = [
+        { id: 'omnivore', label: 'Omnivore', emoji: '🥩', desc: 'Tout type d\'alimentation, sans restriction' },
+        { id: 'vegetarien', label: 'Végétarien', emoji: '🌱', desc: 'Sans viande ni poisson, œufs et laitages inclus' },
+        { id: 'vegan', label: 'Végan', emoji: '🌿', desc: '100% végétal, aucun produit d\'origine animale' },
+        { id: 'flexitarien', label: 'Flexitarien', emoji: '🥑', desc: 'Majoritairement végétal, viande occasionnelle' },
+        { id: 'sans-gluten', label: 'Sans gluten', emoji: '🚫🌾', desc: 'Exclusion du blé, seigle, orge et dérivés' },
+        { id: 'sans-lactose', label: 'Sans lactose', emoji: '🚫🥛', desc: 'Exclusion du lait et produits laitiers' },
+        { id: 'keto', label: 'Keto', emoji: '🥓', desc: 'Très faible en glucides, riche en lipides' },
+        { id: 'paleo', label: 'Paléo', emoji: '🦴', desc: 'Alimentation ancestrale, aliments non transformés' },
+    ];
+    const COOKING_STYLES = [
+        { id: 'quotidien', emoji: '🍳', label: 'Au jour le jour', desc: 'Je cuisine chaque jour, des recettes fraîches et rapides' },
+        { id: 'batch', emoji: '📦', label: 'Batch cooker du dimanche', desc: 'Un gros créneau le weekend pour préparer la semaine' },
+        { id: 'mixte', emoji: '⚖️', label: 'Un mix des deux', desc: 'Préparation weekend + petites recettes en semaine' },
+        { id: 'minimal', emoji: '⏱️', label: 'Le minimum syndical', desc: 'Recettes ultra-rapides, max 15 minutes pour les plus pressés' },
+    ];
+    const EQUIPEMENTS_LIST = [
+        { id: 'four', emoji: '🔥', label: 'Four' },
+        { id: 'micro-ondes', emoji: '📡', label: 'Micro-ondes' },
+        { id: 'blender', emoji: '🫙', label: 'Blender' },
+        { id: 'mixeur', emoji: '🔄', label: 'Mixeur' },
+        { id: 'air-fryer', emoji: '🍟', label: 'Air fryer' },
+        { id: 'robot', emoji: '🤖', label: 'Robot cuiseur' },
+        { id: 'plancha', emoji: '🥘', label: 'Plancha' },
+        { id: 'cocotte', emoji: '🍲', label: 'Cocotte minute' },
+        { id: 'wok', emoji: '🥡', label: 'Wok' },
+        { id: 'balance', emoji: '⚖️', label: 'Balance cuisine' },
+        { id: 'thermometre', emoji: '🌡️', label: 'Thermomètre' },
+        { id: 'deshydrateur', emoji: '🌀', label: 'Déshydrateur' },
+    ];
+    const RYTHME_PRESETS = [
+        { id: 'zen', emoji: '🧘', label: 'Pas d\'urgence, je construis sur la durée', rate: 0.25, desc: 'Rythme doux — ~0.25 kg/sem' },
+        { id: 'regulier', emoji: '🎯', label: 'Régulier et déterminé', rate: 0.5, desc: 'Rythme standard — ~0.5 kg/sem' },
+        { id: 'motive', emoji: '🔥', label: 'Motivé·e, on accélère !', rate: 0.75, desc: 'Rythme soutenu — ~0.75 kg/sem' },
+        { id: 'summer', emoji: '🏖️', label: 'Objectif summer body', rate: 1.0, desc: 'Rythme intensif — ~1 kg/sem' },
+        { id: 'custom', emoji: '📅', label: 'Je choisis ma date', rate: 0, desc: 'Sélectionnez votre propre échéance' },
+    ];
+    const MEAL_TYPES_CONFIG = [
+        { id: 'petit-dejeuner', label: 'Petit-déjeuner', emoji: '☀️', defaultTime: '08:00' },
+        { id: 'gouter-matin', label: 'Collation matin', emoji: '🫖', defaultTime: '10:30' },
+        { id: 'dejeuner', label: 'Déjeuner', emoji: '🍽️', defaultTime: '12:30' },
+        { id: 'gouter-am', label: 'Goûter', emoji: '🍪', defaultTime: '16:00' },
+        { id: 'diner', label: 'Dîner', emoji: '🌙', defaultTime: '19:30' },
+    ];
+    // ===== PASSWORD SCREEN =====
+    const handlePasswordSubmit = (e) => {
+        e.preventDefault();
+        const storedPassword = localStorage.getItem('nf_app_password') || 'Alexandre123';
+        if (password === storedPassword) {
+            setCurrentScreen('onboarding');
+            setPassword('');
+            setPasswordError('');
+        }
+        else {
+            setPasswordError('Mot de passe incorrect');
+        }
+    };
+    // ===== ONBOARDING =====
+    const handleOnboardingChange = (field, value) => {
+        setOnboardingData(prev => ({ ...prev, [field]: value }));
+    };
+    const handleOnboardingPhoto = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                handleOnboardingChange('photo', event.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+    const handleEquipements = (equip) => {
+        setOnboardingData(prev => ({
+            ...prev,
+            equipements: prev.equipements.includes(equip)
+                ? prev.equipements.filter(e => e !== equip)
+                : [...prev.equipements, equip]
+        }));
+    };
+    const handleRegimes = (regimeId) => {
+        setOnboardingData(prev => {
+            const updated = prev.regimes.includes(regimeId)
+                ? prev.regimes.filter(r => r !== regimeId)
+                : [...prev.regimes, regimeId];
+            // Auto-add sans-lactose to regimes (not allergies) when vegan is selected
+            const regimesWithAuto = updated.includes('vegan') && !updated.includes('sans-lactose')
+                ? [...updated, 'sans-lactose']
+                : updated;
+            return { ...prev, regimes: regimesWithAuto };
+        });
+    };
+    const handleAddAllergen = (allergen) => {
+        setOnboardingData(prev => ({
+            ...prev,
+            allergies: prev.allergies.includes(allergen) ? prev.allergies : [...prev.allergies, allergen],
+            allergySearch: ''
+        }));
+    };
+    const handleRemoveAllergen = (allergen) => {
+        setOnboardingData(prev => ({
+            ...prev,
+            allergies: prev.allergies.filter(a => a !== allergen)
+        }));
+    };
+    const handleAddComplement = (complement) => {
+        setOnboardingData(prev => ({
+            ...prev,
+            complementsSelected: prev.complementsSelected.includes(complement) ? prev.complementsSelected : [...prev.complementsSelected, complement],
+            complementSearch: ''
+        }));
+    };
+    const handleRemoveComplement = (complement) => {
+        setOnboardingData(prev => ({
+            ...prev,
+            complementsSelected: prev.complementsSelected.filter(c => c !== complement)
+        }));
+    };
+    const handleOnboardingNext = () => {
+        if (onboardingStep === 'intro') {
+            setOnboardingStep('health');
+        }
+        else if (onboardingStep === 'health') {
+            setOnboardingStep(1);
+        }
+        else if (onboardingStep < 11) {
+            setOnboardingStep(onboardingStep + 1);
+        }
+        else {
+            const tdee = calculateTDEE(onboardingData);
+            const macros = calculateMacros(tdee);
+            const profile = {
+                ...onboardingData,
+                tdee,
+                macros,
+                createdAt: new Date().toISOString(),
+            };
+            setUserProfile(profile);
+            localStorage.setItem('nf_user_profile', JSON.stringify(profile));
+            localStorage.setItem('nf_onboarding_done', 'true');
+            setCurrentScreen('app');
+            addXP(50, 'Onboarding complété');
+        }
+    };
+    const handleOnboardingPrev = () => {
+        if (onboardingStep === 'health') {
+            setOnboardingStep('intro');
+        }
+        else if (onboardingStep === 1) {
+            setOnboardingStep('health');
+        }
+        else if (onboardingStep > 1) {
+            setOnboardingStep(onboardingStep - 1);
+        }
+    };
+    // ===== MEAL SEARCH =====
+    const searchMeals = (0, react_1.useCallback)(async (query) => {
+        if (!query.trim()) {
+            setMealSearchResults([]);
+            return;
+        }
+        setSearchingMeal(true);
+        try {
+            const response = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&json=true&page_size=5`);
+            const data = await response.json();
+            const results = (data.products || []).map(p => ({
+                id: p.id,
+                name: p.product_name || 'Sans nom',
+                calories: p.nutriments?.['energy-kcal'] || 0,
+                proteines: p.nutriments?.proteins || 0,
+                glucides: p.nutriments?.carbohydrates || 0,
+                lipides: p.nutriments?.fat || 0,
+                image: p.image_small_url || '',
+            }));
+            setMealSearchResults(results);
+        }
+        catch (error) {
+            showToast('Erreur lors de la recherche de repas', 'error');
+        }
+        finally {
+            setSearchingMeal(false);
+        }
+    }, [showToast]);
+    const addMealToPlanning = (meal) => {
+        const today = new Date().toISOString().split('T')[0];
+        const currentMeals = weeklyPlanning[today] || [];
+        const updatedPlanning = {
+            ...weeklyPlanning,
+            [today]: [...currentMeals, { ...meal, eaten: false, timestamp: new Date().toISOString() }],
+        };
+        setWeeklyPlanning(updatedPlanning);
+        localStorage.setItem('nf_weekly_planning', JSON.stringify(updatedPlanning));
+        setShowMealModal(false);
+        setMealSearch('');
+        setMealSearchResults([]);
+        addXP(10, 'Repas ajouté');
+        showToast('Repas ajouté au planning', 'success');
+    };
+    // ===== FRIDGE SEARCH =====
+    const searchFridge = (0, react_1.useCallback)(async (query) => {
+        if (!query.trim()) {
+            setFridgeSearchResults([]);
+            return;
+        }
+        setSearchingFridge(true);
+        try {
+            const response = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&json=true&page_size=5`);
+            const data = await response.json();
+            const results = (data.products || []).map(p => ({
+                id: p.id,
+                name: p.product_name || 'Sans nom',
+                nutritionalScore: p.nutriscore_grade || 'N/A',
+                calories: p.nutriments?.['energy-kcal'] || 0,
+                image: p.image_small_url || '',
+                dlc: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            }));
+            setFridgeSearchResults(results);
+        }
+        catch (error) {
+            showToast('Erreur lors de la recherche frigo', 'error');
+        }
+        finally {
+            setSearchingFridge(false);
+        }
+    }, [showToast]);
+    const addItemToFridge = (item) => {
+        const updatedFridge = [
+            ...fridgeInventory,
+            { ...item, addedDate: new Date().toISOString(), id: `fridge_${Date.now()}` },
+        ];
+        setFridgeInventory(updatedFridge);
+        localStorage.setItem('nf_fridge_inventory', JSON.stringify(updatedFridge));
+        setFridgeSearch('');
+        setFridgeSearchResults([]);
+        showToast(`${item.name} ajouté au frigo`, 'success');
+    };
+    const removeFromFridge = (id) => {
+        const updated = fridgeInventory.filter(item => item.id !== id);
+        setFridgeInventory(updated);
+        localStorage.setItem('nf_fridge_inventory', JSON.stringify(updated));
+        showToast('Aliment retiré du frigo', 'success');
+    };
+    const addItemToShoppingList = (item) => {
+        const updated = [
+            ...shoppingList,
+            { ...item, id: `shop_${Date.now()}`, checked: false, category: 'Autre' },
+        ];
+        setShoppingList(updated);
+        localStorage.setItem('nf_shopping_list', JSON.stringify(updated));
+        showToast('Aliment ajouté à la liste de courses', 'success');
+    };
+    const toggleShoppingItem = (id) => {
+        const updated = shoppingList.map(item => item.id === id ? { ...item, checked: !item.checked } : item);
+        setShoppingList(updated);
+        localStorage.setItem('nf_shopping_list', JSON.stringify(updated));
+    };
+    const moveShoppingToFridge = () => {
+        const checkedItems = shoppingList.filter(item => item.checked);
+        const newFridgeItems = checkedItems.map(item => ({
+            ...item,
+            addedDate: new Date().toISOString(),
+            id: `fridge_${Date.now()}_${Math.random()}`,
+        }));
+        setFridgeInventory([...fridgeInventory, ...newFridgeItems]);
+        const remainingShoppingItems = shoppingList.filter(item => !item.checked);
+        setShoppingList(remainingShoppingItems);
+        localStorage.setItem('nf_fridge_inventory', JSON.stringify([...fridgeInventory, ...newFridgeItems]));
+        localStorage.setItem('nf_shopping_list', JSON.stringify(remainingShoppingItems));
+        showToast('Articles ajoutés au frigo', 'success');
+    };
+    // ===== DAILY LOG =====
+    const addDailyLog = (e) => {
+        e.preventDefault();
+        if (!newLog.weight || !newLog.bodyFat) {
+            showToast('Complétez tous les champs', 'error');
+            return;
+        }
+        const log = {
+            ...newLog,
+            date: new Date().toISOString().split('T')[0],
+            id: `log_${Date.now()}`,
+        };
+        const updated = [...dailyLogs, log];
+        setDailyLogs(updated);
+        localStorage.setItem('nf_daily_logs', JSON.stringify(updated));
+        setNewLog({ weight: '', bodyFat: '', energy: 5, sleep: 5, notes: '' });
+        setShowLogModal(false);
+        addXP(10, 'Log de poids enregistré');
+        showToast('Donnée enregistrée avec succès', 'success');
+    };
+    // ===== GAMIFICATION =====
+    const markMealAsEaten = (mealId) => {
+        const today = new Date().toISOString().split('T')[0];
+        const updated = {
+            ...weeklyPlanning,
+            [today]: weeklyPlanning[today].map(meal => meal.timestamp === mealId ? { ...meal, eaten: true } : meal),
+        };
+        setWeeklyPlanning(updated);
+        localStorage.setItem('nf_weekly_planning', JSON.stringify(updated));
+        addXP(15, 'Repas consommé');
+    };
+    // ===== SETTINGS =====
+    const handleChangePassword = (e) => {
+        e.preventDefault();
+        const currentPassword = e.target.currentPassword.value;
+        const newPassword = e.target.newPassword.value;
+        const confirmPassword = e.target.confirmPassword.value;
+        if (currentPassword !== (localStorage.getItem('nf_app_password') || 'Alexandre123')) {
+            showToast('Mot de passe actuel incorrect', 'error');
+            return;
+        }
+        if (newPassword !== confirmPassword) {
+            showToast('Les nouveaux mots de passe ne correspondent pas', 'error');
+            return;
+        }
+        localStorage.setItem('nf_app_password', newPassword);
+        showToast('Mot de passe mis à jour avec succès', 'success');
+        e.target.reset();
+    };
+    const handleSaveApiKey = () => {
+        if (apiKey.trim()) {
+            localStorage.setItem('nf_api_key', apiKey);
+            showToast('Clé API sauvegardée', 'success');
+        }
+    };
+    const handleGenerateMealPlan = async () => {
+        if (!apiKey.trim()) {
+            showToast('Veuillez d\'abord ajouter votre clé API Anthropic', 'error');
+            return;
+        }
+        setLoadingAI(true);
+        try {
+            const response = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: {
+                    'x-api-key': apiKey,
+                    'anthropic-version': '2023-06-01',
+                    'content-type': 'application/json',
+                },
+                body: JSON.stringify({
+                    model: 'claude-sonnet-4-20250514',
+                    max_tokens: 1500,
+                    messages: [
+                        {
+                            role: 'user',
+                            content: `Tu es un nutritionniste expert. Génère un plan de repas pour demain basé sur ce profil:
+              - Prénom: ${userProfile.prenom}
+              - Calories cibles: ${userProfile.tdee}
+              - Régimes: ${userProfile.regimes.join(', ') || 'Aucun'}
+              - Aliments adorés: ${userProfile.alimentsAdores}
+              - Allergies: ${userProfile.allergies}
+
+              Propose 4 repas avec calories et macros estimées. Format: Petit-déj: [nom] (calories, P/C/L), etc.`,
+                        },
+                    ],
+                }),
+            });
+            if (!response.ok) {
+                throw new Error('Erreur API Anthropic');
+            }
+            const data = await response.json();
+            const suggestion = data.content[0]?.text || '';
+            showToast('Plan générée par l\'IA', 'success');
+            // Could store the suggestion and display it
+        }
+        catch (error) {
+            showToast('Erreur lors de la génération du plan', 'error');
+        }
+        finally {
+            setLoadingAI(false);
+        }
+    };
+    const handleResetApp = (e) => {
+        e.preventDefault();
+        const resetPassword = e.target.resetPassword.value;
+        const currentPassword = localStorage.getItem('nf_app_password') || 'Alexandre123';
+        if (resetPassword !== currentPassword) {
+            showToast('Mot de passe incorrect', 'error');
+            return;
+        }
+        localStorage.clear();
+        window.location.reload();
+    };
+    // ===== SCREEN RENDERING =====
+    // PASSWORD SCREEN
+    if (currentScreen === 'password') {
+        return (react_1.default.createElement("div", { className: "min-h-screen bg-gradient-to-br from-gray-900 via-green-900 to-black relative overflow-hidden flex items-center justify-center" },
+            react_1.default.createElement("div", { className: "absolute w-96 h-96 bg-green-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse", style: { top: '-50px', left: '-50px' } }),
+            react_1.default.createElement("div", { className: "absolute w-96 h-96 bg-yellow-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse", style: { bottom: '-50px', right: '-50px', animationDelay: '2s' } }),
+            react_1.default.createElement("div", { className: "relative z-10 w-full max-w-md px-6" },
+                react_1.default.createElement("div", { className: "text-center mb-12" },
+                    react_1.default.createElement("div", { className: "text-6xl mb-4" }, "\uD83C\uDF3F"),
+                    react_1.default.createElement("h1", { className: "text-4xl font-bold text-white mb-2", style: { fontFamily: 'Fraunces' } }, "NutriFlow"),
+                    react_1.default.createElement("p", { className: "text-green-200" }, "Votre nutritionniste personnel")),
+                react_1.default.createElement("form", { onSubmit: handlePasswordSubmit, className: "bg-white/10 backdrop-blur-xl rounded-2xl p-8 border border-white/20" },
+                    react_1.default.createElement("div", { className: "mb-6" },
+                        react_1.default.createElement("label", { className: "block text-white mb-3 font-medium" }, "Mot de passe"),
+                        react_1.default.createElement("div", { className: "relative" },
+                            react_1.default.createElement("input", { type: passwordVisible ? 'text' : 'password', value: password, onChange: (e) => setPassword(e.target.value), placeholder: "Entrez votre mot de passe", className: "w-full px-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-green-400 transition" }),
+                            react_1.default.createElement("button", { type: "button", onClick: () => setPasswordVisible(!passwordVisible), className: "absolute right-3 top-3 text-white/70 hover:text-white" }, passwordVisible ? react_1.default.createElement(lucide_react_1.EyeOff, { size: 20 }) : react_1.default.createElement(lucide_react_1.Eye, { size: 20 })))),
+                    passwordError && (react_1.default.createElement("div", { className: "mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg flex items-center gap-2 text-red-200" },
+                        react_1.default.createElement(lucide_react_1.AlertCircle, { size: 18 }),
+                        passwordError)),
+                    react_1.default.createElement("button", { type: "submit", className: "w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold py-3 rounded-lg transition transform hover:scale-105 flex items-center justify-center gap-2" },
+                        react_1.default.createElement(lucide_react_1.Lock, { size: 20 }),
+                        " Acc\u00E9der")))));
+    }
+    // ONBOARDING SCREEN
+    if (currentScreen === 'onboarding') {
+        const getFilteredAllergenes = () => {
+            if (!onboardingData.allergySearch)
+                return ALLERGENES;
+            return ALLERGENES.filter(a => a.toLowerCase().includes(onboardingData.allergySearch.toLowerCase()));
+        };
+        const getFilteredComplements = () => {
+            if (!onboardingData.complementSearch)
+                return COMPLEMENTS;
+            return COMPLEMENTS.filter(c => c.toLowerCase().includes(onboardingData.complementSearch.toLowerCase()));
+        };
+        const getFilteredSports = () => {
+            if (!onboardingData.sportSearch)
+                return SPORTS_LIST;
+            return SPORTS_LIST.filter(s => s.toLowerCase().includes(onboardingData.sportSearch.toLowerCase()));
+        };
+        const getFilteredCountries = () => {
+            if (!onboardingData.paysSearch)
+                return PAYS_LIST;
+            return PAYS_LIST.filter(p => p.toLowerCase().includes(onboardingData.paysSearch.toLowerCase()));
+        };
+        return (react_1.default.createElement("div", { className: "min-h-screen bg-gradient-to-br from-green-50 to-emerald-50" },
+            onboardingStep === 'intro' && (react_1.default.createElement("div", { className: "min-h-screen flex items-center justify-center px-4" },
+                react_1.default.createElement("div", { className: "max-w-2xl w-full text-center" },
+                    react_1.default.createElement("div", { className: "text-8xl mb-8" }, "\uD83C\uDF3F"),
+                    react_1.default.createElement("h1", { className: "text-5xl font-bold mb-6 text-gray-900", style: { fontFamily: 'Fraunces' } }, "Premiers pas"),
+                    react_1.default.createElement("p", { className: "text-lg text-gray-700 mb-12 leading-relaxed" }, "Chaque parcours commence par un premier pas. Le v\u00F4tre commence ici, maintenant. Dites-nous qui vous \u00EAtes, ce que vous aimez, comment vous vivez \u2014 et nous transformerons ces r\u00E9ponses en un programme nutritionnel qui vous ressemble vraiment, pas un coach g\u00E9n\u00E9rique, mais VOTRE compagnon."),
+                    react_1.default.createElement("p", { className: "text-gray-600 mb-12 leading-relaxed" }, "Comptez environ 5 minutes, r\u00E9pondez \u00E0 votre rythme, et sachez que tout reste modifiable \u00E0 tout moment. Rien n'est grav\u00E9 dans le marbre : vos r\u00E9ponses \u00E9volueront avec vous. C'est parti ? \uD83C\uDF3F"),
+                    react_1.default.createElement("button", { onClick: handleOnboardingNext, className: "px-8 py-4 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl transition text-lg" }, "Commencer \u2192")))),
+            onboardingStep === 'health' && (react_1.default.createElement("div", { className: "min-h-screen flex items-center justify-center px-4 py-8" },
+                react_1.default.createElement("div", { className: "max-w-2xl w-full" },
+                    react_1.default.createElement("div", { className: "bg-white rounded-2xl shadow-xl p-8 mb-6" },
+                        react_1.default.createElement("h1", { className: "text-4xl font-bold mb-2 text-gray-900", style: { fontFamily: 'Fraunces' } }, "\uD83D\uDCF1 Connexion \u00E0 vos apps sant\u00E9"),
+                        react_1.default.createElement("p", { className: "text-gray-600 mb-8" }, "Nous pouvons nous connecter \u00E0 vos applications de sant\u00E9 (Apple Sant\u00E9, Google Health Connect, Withings, Strava, Garmin, Fitbit, etc.) pour mieux vous personnaliser l'exp\u00E9rience."),
+                        react_1.default.createElement("div", { className: "bg-blue-50 border-2 border-blue-200 rounded-xl p-6 mb-8" },
+                            react_1.default.createElement("h3", { className: "font-bold text-blue-900 mb-4" }, "\uD83D\uDCCA Donn\u00E9es accessibles :"),
+                            react_1.default.createElement("ul", { className: "space-y-2 text-gray-700" },
+                                react_1.default.createElement("li", null, "\u2696\uFE0F Poids et composition corporelle"),
+                                react_1.default.createElement("li", null, "\uD83C\uDFC3 Activit\u00E9 physique"),
+                                react_1.default.createElement("li", null, "\uD83D\uDE34 Sommeil"),
+                                react_1.default.createElement("li", null, "\uD83D\uDC5F Pas quotidiens"),
+                                react_1.default.createElement("li", null, "\uD83D\uDC93 Fr\u00E9quence cardiaque"))),
+                        react_1.default.createElement("p", { className: "text-xs text-gray-500 text-center mb-8" }, "(Simul\u00E9 \u2014 n\u00E9cessite une app native pour l'acc\u00E8s r\u00E9el)"),
+                        react_1.default.createElement("div", { className: "flex gap-4" },
+                            react_1.default.createElement("button", { onClick: () => {
+                                    setOnboardingData(prev => ({ ...prev, healthPermissions: false }));
+                                    setOnboardingStep(1);
+                                }, className: "flex-1 px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold rounded-xl transition" }, "Plus tard"),
+                            react_1.default.createElement("button", { onClick: () => {
+                                    setOnboardingData(prev => ({ ...prev, healthPermissions: true }));
+                                    setOnboardingStep(1);
+                                }, className: "flex-1 px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl transition" }, "Autoriser l'acc\u00E8s")))))),
+            typeof onboardingStep === 'number' && (react_1.default.createElement("div", { className: "max-w-3xl mx-auto px-4 py-8" },
+                react_1.default.createElement("div", { className: "mb-8" },
+                    react_1.default.createElement("div", { className: "flex justify-between items-center mb-3" },
+                        react_1.default.createElement("h1", { className: "text-2xl font-bold text-gray-800", style: { fontFamily: 'Fraunces' } }, "\uD83C\uDF3F Premiers pas"),
+                        react_1.default.createElement("span", { className: "text-sm font-medium text-gray-600" },
+                            "\u00C9tape ",
+                            onboardingStep,
+                            "/11 \u2014 ",
+                            Math.round((onboardingStep / 11) * 100),
+                            "%")),
+                    react_1.default.createElement("div", { className: "w-full bg-gray-200 rounded-full h-2" },
+                        react_1.default.createElement("div", { className: "bg-green-500 h-2 rounded-full transition-all duration-300", style: { width: `${(onboardingStep / 11) * 100}%` } }))),
+                onboardingStep === 1 && (react_1.default.createElement("div", { className: "bg-white rounded-2xl shadow-lg p-8 mb-6 space-y-6" },
+                    react_1.default.createElement("h2", { className: "text-3xl font-bold mb-2", style: { fontFamily: 'Fraunces' } }, "\uD83D\uDC64 Identit\u00E9"),
+                    react_1.default.createElement("p", { className: "text-gray-600" }, "Dites-nous qui vous \u00EAtes"),
+                    react_1.default.createElement("div", null,
+                        react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, "\uD83C\uDFF7\uFE0F Pr\u00E9nom"),
+                        react_1.default.createElement("input", { type: "text", placeholder: "ex: Alexandre", value: onboardingData.prenom, onChange: (e) => handleOnboardingChange('prenom', e.target.value), className: "w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none" })),
+                    react_1.default.createElement("div", null,
+                        react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, "\uD83C\uDF82 Date de naissance"),
+                        react_1.default.createElement("input", { type: "date", value: onboardingData.dateNaissance, onChange: (e) => handleOnboardingChange('dateNaissance', e.target.value), className: "w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none" })),
+                    react_1.default.createElement("div", null,
+                        react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-3" }, "\u26A7 Genre"),
+                        react_1.default.createElement("div", { className: "flex gap-3" }, ['Homme', 'Femme', 'Non-binaire'].map(g => (react_1.default.createElement("button", { key: g, onClick: () => handleOnboardingChange('sexe', g), className: `flex-1 py-2 px-4 rounded-xl border-2 font-medium transition ${onboardingData.sexe === g
+                                ? 'border-green-500 bg-green-50 text-green-700'
+                                : 'border-gray-200 text-gray-700 hover:border-green-300'}` }, g))))),
+                    react_1.default.createElement("div", null,
+                        react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, "\uD83D\uDCF8 Photo de profil (optionnel)"),
+                        react_1.default.createElement("label", { className: "flex items-center justify-center w-full px-4 py-6 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-green-500 hover:bg-green-50 transition" },
+                            react_1.default.createElement("input", { type: "file", accept: "image/*", onChange: handleOnboardingPhoto, className: "hidden" }),
+                            react_1.default.createElement("span", { className: "text-gray-600" }, "Cliquez pour ajouter une photo")),
+                        onboardingData.photo && (react_1.default.createElement("img", { src: onboardingData.photo, alt: "Preview", className: "w-32 h-32 rounded-xl object-cover mt-4" }))))),
+                onboardingStep === 2 && (react_1.default.createElement("div", { className: "bg-white rounded-2xl shadow-lg p-8 mb-6 space-y-6" },
+                    react_1.default.createElement("h2", { className: "text-3xl font-bold mb-2", style: { fontFamily: 'Fraunces' } }, "\uD83D\uDCCF Mesures corporelles"),
+                    react_1.default.createElement("div", { className: "bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-4" },
+                        react_1.default.createElement("p", { className: "text-sm text-blue-900" }, "\uD83D\uDCF2 Si vous avez autoris\u00E9 l'acc\u00E8s sant\u00E9, ces donn\u00E9es seront pr\u00E9remplies")),
+                    react_1.default.createElement("div", { className: "grid grid-cols-2 gap-4" },
+                        react_1.default.createElement("div", null,
+                            react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, "\uD83D\uDCD0 Taille"),
+                            react_1.default.createElement("div", { className: "flex gap-2" },
+                                react_1.default.createElement("input", { type: "number", placeholder: "ex: 175", value: onboardingData.taille, onChange: (e) => handleOnboardingChange('taille', e.target.value), className: "flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none" }),
+                                react_1.default.createElement("span", { className: "py-3 px-3 text-gray-600" }, "cm"))),
+                        react_1.default.createElement("div", null,
+                            react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, "\u2696\uFE0F Poids actuel"),
+                            react_1.default.createElement("div", { className: "flex gap-2" },
+                                react_1.default.createElement("input", { type: "number", placeholder: "ex: 72.5", value: onboardingData.poids, onChange: (e) => handleOnboardingChange('poids', e.target.value), className: "flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none" }),
+                                react_1.default.createElement("span", { className: "py-3 px-3 text-gray-600" }, "kg")))),
+                    react_1.default.createElement("div", null,
+                        react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, "\uD83D\uDCCA Masse grasse \u2014 si connue"),
+                        react_1.default.createElement("div", { className: "flex gap-2" },
+                            react_1.default.createElement("input", { type: "number", placeholder: "ex: 20", value: onboardingData.masseGrasse, onChange: (e) => handleOnboardingChange('masseGrasse', e.target.value), className: "flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none" }),
+                            react_1.default.createElement("select", { value: onboardingData.masseGrasseUnit, onChange: (e) => handleOnboardingChange('masseGrasseUnit', e.target.value), className: "px-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none bg-white" },
+                                react_1.default.createElement("option", { value: "%" }, "%"),
+                                react_1.default.createElement("option", { value: "kg" }, "kg")))),
+                    react_1.default.createElement("div", null,
+                        react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, "\uD83D\uDCCA Masse maigre \u2014 si connue"),
+                        react_1.default.createElement("div", { className: "flex gap-2" },
+                            react_1.default.createElement("input", { type: "number", placeholder: "ex: 58", value: onboardingData.masseMaigre, onChange: (e) => handleOnboardingChange('masseMaigre', e.target.value), className: "flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none" }),
+                            react_1.default.createElement("select", { value: onboardingData.masseMaigreUnit, onChange: (e) => handleOnboardingChange('masseMaigreUnit', e.target.value), className: "px-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none bg-white" },
+                                react_1.default.createElement("option", { value: "%" }, "%"),
+                                react_1.default.createElement("option", { value: "kg" }, "kg")))))),
+                onboardingStep === 3 && (react_1.default.createElement("div", { className: "bg-white rounded-2xl shadow-lg p-8 mb-6 space-y-6" },
+                    react_1.default.createElement("h2", { className: "text-3xl font-bold mb-2", style: { fontFamily: 'Fraunces' } }, "\uD83C\uDFAF Objectifs"),
+                    react_1.default.createElement("div", { className: "grid grid-cols-2 gap-4" },
+                        react_1.default.createElement("div", null,
+                            react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, "\u2696\uFE0F Poids vis\u00E9"),
+                            react_1.default.createElement("div", { className: "flex gap-2" },
+                                react_1.default.createElement("input", { type: "number", placeholder: "ex: 65", value: onboardingData.poidsTarget, onChange: (e) => handleOnboardingChange('poidsTarget', e.target.value), className: "flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none" }),
+                                react_1.default.createElement("span", { className: "py-3 px-3 text-gray-600" }, "kg"))),
+                        react_1.default.createElement("div", null,
+                            react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, "\uD83D\uDCCA Masse grasse vis\u00E9e"),
+                            react_1.default.createElement("div", { className: "flex gap-2" },
+                                react_1.default.createElement("input", { type: "number", placeholder: "ex: 15", value: onboardingData.masseGrasseTarget, onChange: (e) => handleOnboardingChange('masseGrasseTarget', e.target.value), className: "flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none" }),
+                                react_1.default.createElement("select", { value: onboardingData.masseGrasseTargetUnit, onChange: (e) => handleOnboardingChange('masseGrasseTargetUnit', e.target.value), className: "px-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none bg-white" },
+                                    react_1.default.createElement("option", { value: "%" }, "%"),
+                                    react_1.default.createElement("option", { value: "kg" }, "kg"))))),
+                    react_1.default.createElement("div", null,
+                        react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, "\uD83D\uDCCA Masse maigre vis\u00E9e"),
+                        react_1.default.createElement("div", { className: "flex gap-2" },
+                            react_1.default.createElement("input", { type: "number", placeholder: "ex: 55", value: onboardingData.masseMaigreTarget, onChange: (e) => handleOnboardingChange('masseMaigreTarget', e.target.value), className: "flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none" }),
+                            react_1.default.createElement("select", { value: onboardingData.masseMaigreTargetUnit, onChange: (e) => handleOnboardingChange('masseMaigreTargetUnit', e.target.value), className: "px-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none bg-white" },
+                                react_1.default.createElement("option", { value: "%" }, "%"),
+                                react_1.default.createElement("option", { value: "kg" }, "kg")))),
+                    react_1.default.createElement("div", null,
+                        react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-3" }, "\uD83C\uDFC6 Objectif principal"),
+                        react_1.default.createElement("div", { className: "grid grid-cols-2 gap-3" }, [
+                            { value: 'perte-gras', label: 'Perdre du gras 🔥' },
+                            { value: 'muscle', label: 'Gagner du muscle 💪' },
+                            { value: 'maintien', label: 'Maintenir ⚖️' },
+                            { value: 'bien-etre', label: 'Bien-être général 🌟' }
+                        ].map(o => (react_1.default.createElement("button", { key: o.value, onClick: () => handleOnboardingChange('objectif', o.value), className: `py-2 px-3 rounded-xl border-2 font-medium transition text-sm ${onboardingData.objectif === o.value
+                                ? 'border-green-500 bg-green-50 text-green-700'
+                                : 'border-gray-200 text-gray-700 hover:border-green-300'}` }, o.label))))),
+                    react_1.default.createElement("div", null,
+                        react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-3" }, "\u23F1\uFE0F Votre rythme"),
+                        react_1.default.createElement("div", { className: "space-y-3" }, RYTHME_PRESETS.map(preset => (react_1.default.createElement("button", { key: preset.id, onClick: () => {
+                                setOnboardingData(prev => {
+                                    const updates = { ...prev, rythmePreset: preset.id };
+                                    if (preset.id !== 'custom') {
+                                        updates.dateTarget = calculateEstimatedDate(parseFloat(prev.poids), parseFloat(prev.poidsTarget), preset.rate);
+                                    }
+                                    return updates;
+                                });
+                            }, className: `w-full p-4 rounded-xl border-2 text-left transition ${onboardingData.rythmePreset === preset.id
+                                ? 'border-green-500 bg-green-50'
+                                : 'border-gray-200 hover:border-green-300'}` },
+                            react_1.default.createElement("div", { className: "flex items-center gap-3" },
+                                react_1.default.createElement("span", { className: "text-2xl" }, preset.emoji),
+                                react_1.default.createElement("div", null,
+                                    react_1.default.createElement("p", { className: "font-medium text-gray-900" }, preset.label),
+                                    react_1.default.createElement("p", { className: "text-xs text-gray-600" }, preset.desc)))))))),
+                    onboardingData.rythmePreset === 'custom' && (react_1.default.createElement("div", null,
+                        react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, "\uD83D\uDCC5 Date cible"),
+                        react_1.default.createElement("input", { type: "date", value: onboardingData.dateTarget, onChange: (e) => handleOnboardingChange('dateTarget', e.target.value), className: "w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none" }))),
+                    onboardingData.dateTarget && (react_1.default.createElement("div", { className: "bg-green-50 border-2 border-green-200 rounded-xl p-4" },
+                        react_1.default.createElement("p", { className: "text-green-900 font-medium" },
+                            "\uD83D\uDCC5 Date estim\u00E9e : ",
+                            new Date(onboardingData.dateTarget).toLocaleDateString('fr-FR')))))),
+                onboardingStep === 4 && (react_1.default.createElement("div", { className: "bg-white rounded-2xl shadow-lg p-8 mb-6 space-y-6" },
+                    react_1.default.createElement("h2", { className: "text-3xl font-bold mb-2", style: { fontFamily: 'Fraunces' } }, "\uD83E\uDD57 Pr\u00E9f\u00E9rences alimentaires"),
+                    react_1.default.createElement("p", { className: "text-gray-600" }, "Votre choix influence le th\u00E8me visuel de l'app"),
+                    react_1.default.createElement("div", null,
+                        react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-3" }, "Type de r\u00E9gime"),
+                        react_1.default.createElement("div", { className: "grid gap-3" }, REGIMES_DATA.map(regime => (react_1.default.createElement("button", { key: regime.id, onClick: () => handleRegimes(regime.id), className: `p-4 rounded-xl border-2 text-left transition ${onboardingData.regimes.includes(regime.id)
+                                ? 'border-green-500 bg-green-50'
+                                : 'border-gray-200 hover:border-green-300'}` },
+                            react_1.default.createElement("div", { className: "flex items-start gap-3" },
+                                react_1.default.createElement("span", { className: "text-2xl" }, regime.emoji),
+                                react_1.default.createElement("div", null,
+                                    react_1.default.createElement("p", { className: "font-medium text-gray-900" }, regime.label),
+                                    react_1.default.createElement("p", { className: "text-xs text-gray-600" }, regime.desc)))))))),
+                    react_1.default.createElement("div", null,
+                        react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, "\uD83D\uDEAB Allergies et intol\u00E9rances"),
+                        react_1.default.createElement("div", { className: "relative mb-3" },
+                            react_1.default.createElement("input", { type: "text", placeholder: "Rechercher une allergie...", value: onboardingData.allergySearch, onChange: (e) => handleOnboardingChange('allergySearch', e.target.value), className: "w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none" }),
+                            onboardingData.allergySearch && getFilteredAllergenes().length > 0 && (react_1.default.createElement("div", { className: "absolute top-full left-0 right-0 bg-white border-2 border-gray-200 rounded-xl mt-1 max-h-48 overflow-y-auto z-10" }, getFilteredAllergenes().map(allergen => (react_1.default.createElement("button", { key: allergen, onClick: () => handleAddAllergen(allergen), className: "w-full text-left px-4 py-2 hover:bg-green-50 border-b border-gray-200 last:border-b-0" }, allergen)))))),
+                        react_1.default.createElement("div", { className: "flex flex-wrap gap-2 mb-4" }, onboardingData.allergies.map(allergen => (react_1.default.createElement("div", { key: allergen, className: "bg-red-100 text-red-900 px-3 py-1 rounded-full flex items-center gap-2" },
+                            allergen,
+                            react_1.default.createElement("button", { onClick: () => handleRemoveAllergen(allergen), className: "text-red-600 hover:text-red-900" }, "\u00D7")))))),
+                    react_1.default.createElement("div", null,
+                        react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, "\uD83D\uDE0D Aliments ador\u00E9s"),
+                        react_1.default.createElement("input", { type: "text", placeholder: "ex: avocat, quinoa, chocolat noir...", value: onboardingData.alimentsAdores, onChange: (e) => handleOnboardingChange('alimentsAdores', e.target.value), className: "w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none" })),
+                    react_1.default.createElement("div", null,
+                        react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, "\uD83D\uDE24 Aliments d\u00E9test\u00E9s"),
+                        react_1.default.createElement("input", { type: "text", placeholder: "ex: c\u00E9leri, coriandre, foie...", value: onboardingData.alimentsDetestes, onChange: (e) => handleOnboardingChange('alimentsDetestes', e.target.value), className: "w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none" })))),
+                onboardingStep === 5 && (react_1.default.createElement("div", { className: "bg-white rounded-2xl shadow-lg p-8 mb-6 space-y-6" },
+                    react_1.default.createElement("h2", { className: "text-3xl font-bold mb-2", style: { fontFamily: 'Fraunces' } }, "\u23F0 Rythme alimentaire"),
+                    react_1.default.createElement("div", null,
+                        react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-3" }, "Quels repas prenez-vous ?"),
+                        react_1.default.createElement("div", { className: "grid grid-cols-2 gap-3" }, MEAL_TYPES_CONFIG.map(meal => (react_1.default.createElement("button", { key: meal.id, onClick: () => {
+                                setOnboardingData(prev => {
+                                    const updated = prev.selectedMeals.includes(meal.id)
+                                        ? prev.selectedMeals.filter(m => m !== meal.id)
+                                        : [...prev.selectedMeals, meal.id];
+                                    const ifDuration = calculateIFDuration(prev.mealTimes, updated);
+                                    return { ...prev, selectedMeals: updated, ifDuration };
+                                });
+                            }, className: `p-3 rounded-xl border-2 text-center font-medium transition ${onboardingData.selectedMeals.includes(meal.id)
+                                ? 'border-green-500 bg-green-50 text-green-700'
+                                : 'border-gray-200 text-gray-700 hover:border-green-300'}` },
+                            react_1.default.createElement("div", { className: "text-xl mb-1" }, meal.emoji),
+                            react_1.default.createElement("div", { className: "text-xs" }, meal.label)))))),
+                    react_1.default.createElement("div", null,
+                        react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-3" }, "\uD83D\uDD50 Horaires des repas"),
+                        react_1.default.createElement("div", { className: "grid grid-cols-2 gap-4" }, MEAL_TYPES_CONFIG.filter(m => onboardingData.selectedMeals.includes(m.id)).map(meal => (react_1.default.createElement("div", { key: meal.id },
+                            react_1.default.createElement("label", { className: "block text-xs text-gray-600 mb-2" }, meal.label),
+                            react_1.default.createElement("input", { type: "time", value: onboardingData.mealTimes[meal.id] || meal.defaultTime, onChange: (e) => {
+                                    const newTime = e.target.value;
+                                    setOnboardingData(prev => {
+                                        const updated = { ...prev.mealTimes, [meal.id]: newTime };
+                                        const ifDuration = calculateIFDuration(updated, prev.selectedMeals);
+                                        return { ...prev, mealTimes: updated, ifDuration };
+                                    });
+                                }, className: "w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-green-500 focus:outline-none" })))))),
+                    onboardingData.ifDuration > 0 && (react_1.default.createElement("div", { className: "bg-green-50 border-2 border-green-200 rounded-xl p-4" },
+                        react_1.default.createElement("p", { className: "text-green-900 font-medium" },
+                            "\uD83D\uDD25 Je\u00FBne intermittent d\u00E9tect\u00E9 \u2014 Fen\u00EAtre de je\u00FBne : ",
+                            onboardingData.ifDuration,
+                            "h"))),
+                    react_1.default.createElement("p", { className: "text-xs text-gray-600 text-center" }, "Ces repas structureront votre planning quotidien"))),
+                onboardingStep === 6 && (react_1.default.createElement("div", { className: "bg-white rounded-2xl shadow-lg p-8 mb-6 space-y-6" },
+                    react_1.default.createElement("h2", { className: "text-3xl font-bold mb-2", style: { fontFamily: 'Fraunces' } }, "\uD83C\uDFC3 Activit\u00E9 & travail"),
+                    react_1.default.createElement("div", null,
+                        react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-3" }, "\uD83D\uDCBC Type de travail"),
+                        react_1.default.createElement("div", { className: "space-y-2" }, WORK_TYPES.map(work => (react_1.default.createElement("label", { key: work.value, className: "flex items-start p-3 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-green-300 transition" },
+                            react_1.default.createElement("input", { type: "radio", name: "work", checked: onboardingData.typeTravail === work.value, onChange: () => handleOnboardingChange('typeTravail', work.value), className: "mt-1 mr-3" }),
+                            react_1.default.createElement("div", null,
+                                react_1.default.createElement("p", { className: "font-medium text-gray-900" }, work.label),
+                                react_1.default.createElement("p", { className: "text-xs text-gray-600" }, work.desc))))))),
+                    react_1.default.createElement("div", null,
+                        react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-3" }, "\uD83D\uDD50 Horaires de travail"),
+                        react_1.default.createElement("div", { className: "flex gap-3 mb-4" },
+                            react_1.default.createElement("div", null,
+                                react_1.default.createElement("label", { className: "block text-xs text-gray-600 mb-1" }, "D\u00E9but"),
+                                react_1.default.createElement("input", { type: "time", value: onboardingData.horairesTravailDebut, onChange: (e) => handleOnboardingChange('horairesTravailDebut', e.target.value), className: "w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-green-500 focus:outline-none" })),
+                            react_1.default.createElement("div", null,
+                                react_1.default.createElement("label", { className: "block text-xs text-gray-600 mb-1" }, "Fin"),
+                                react_1.default.createElement("input", { type: "time", value: onboardingData.horairesTravailFin, onChange: (e) => handleOnboardingChange('horairesTravailFin', e.target.value), className: "w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-green-500 focus:outline-none" }))),
+                        react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, "\uD83D\uDCC5 Jours de travail"),
+                        react_1.default.createElement("div", { className: "flex gap-2 flex-wrap" }, ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(day => (react_1.default.createElement("button", { key: day, onClick: () => {
+                                setOnboardingData(prev => ({
+                                    ...prev,
+                                    joursTravail: prev.joursTravail.includes(day)
+                                        ? prev.joursTravail.filter(d => d !== day)
+                                        : [...prev.joursTravail, day]
+                                }));
+                            }, className: `w-12 h-12 rounded-lg border-2 font-medium transition ${onboardingData.joursTravail.includes(day)
+                                ? 'border-green-500 bg-green-50 text-green-700'
+                                : 'border-gray-200 text-gray-700 hover:border-green-300'}` }, day))))),
+                    react_1.default.createElement("div", null,
+                        react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-3" }, "\uD83C\uDFCB\uFE0F Sports pratiqu\u00E9s"),
+                        react_1.default.createElement("div", { className: "relative mb-3" },
+                            react_1.default.createElement("input", { type: "text", placeholder: "Rechercher un sport...", value: onboardingData.sportSearch, onChange: (e) => handleOnboardingChange('sportSearch', e.target.value), className: "w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none" }),
+                            onboardingData.sportSearch && getFilteredSports().length > 0 && (react_1.default.createElement("div", { className: "absolute top-full left-0 right-0 bg-white border-2 border-gray-200 rounded-xl mt-1 max-h-48 overflow-y-auto z-10" }, getFilteredSports().map(sport => (react_1.default.createElement("button", { key: sport, onClick: () => {
+                                    setOnboardingData(prev => ({
+                                        ...prev,
+                                        sports: prev.sports.find(s => s.name === sport) ? prev.sports : [...prev.sports, { name: sport, duration: '30min', frequency: '2x' }],
+                                        sportSearch: ''
+                                    }));
+                                }, className: "w-full text-left px-4 py-2 hover:bg-green-50 border-b border-gray-200 last:border-b-0" }, sport)))))),
+                        react_1.default.createElement("div", { className: "space-y-2" }, onboardingData.sports.map((sport, idx) => (react_1.default.createElement("div", { key: idx, className: "flex gap-2 items-center p-3 bg-gray-50 rounded-lg" },
+                            react_1.default.createElement("span", { className: "flex-1 font-medium" }, sport.name),
+                            react_1.default.createElement("select", { value: sport.duration, onChange: (e) => {
+                                    const val = e.target.value;
+                                    setOnboardingData(prev => {
+                                        const updated = [...prev.sports];
+                                        updated[idx] = { ...updated[idx], duration: val };
+                                        return { ...prev, sports: updated };
+                                    });
+                                }, className: "px-2 py-1 border border-gray-300 rounded text-sm" },
+                                react_1.default.createElement("option", null, "15min"),
+                                react_1.default.createElement("option", null, "30min"),
+                                react_1.default.createElement("option", null, "45min"),
+                                react_1.default.createElement("option", null, "1h"),
+                                react_1.default.createElement("option", null, "1h30"),
+                                react_1.default.createElement("option", null, "2h")),
+                            react_1.default.createElement("select", { value: sport.frequency, onChange: (e) => {
+                                    const val = e.target.value;
+                                    setOnboardingData(prev => {
+                                        const updated = [...prev.sports];
+                                        updated[idx] = { ...updated[idx], frequency: val };
+                                        return { ...prev, sports: updated };
+                                    });
+                                }, className: "px-2 py-1 border border-gray-300 rounded text-sm" },
+                                react_1.default.createElement("option", null, "1x"),
+                                react_1.default.createElement("option", null, "2x"),
+                                react_1.default.createElement("option", null, "3x"),
+                                react_1.default.createElement("option", null, "4x"),
+                                react_1.default.createElement("option", null, "5x"),
+                                react_1.default.createElement("option", null, "6x"),
+                                react_1.default.createElement("option", null, "7x")),
+                            react_1.default.createElement("button", { onClick: () => {
+                                    setOnboardingData(prev => ({
+                                        ...prev,
+                                        sports: prev.sports.filter((_, i) => i !== idx)
+                                    }));
+                                }, className: "text-red-600 hover:text-red-900" }, "\u00D7")))))),
+                    react_1.default.createElement("div", null,
+                        react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-3" }, "\uD83D\uDEB6 Marche quotidienne"),
+                        react_1.default.createElement("div", { className: "flex items-center gap-4" },
+                            react_1.default.createElement("input", { type: "range", min: "0", max: "20", value: onboardingData.marcheKm, onChange: (e) => handleOnboardingChange('marcheKm', parseFloat(e.target.value)), className: "flex-1" }),
+                            react_1.default.createElement("span", { className: "text-lg font-bold text-green-600 w-16 text-right" },
+                                onboardingData.marcheKm.toFixed(1),
+                                " km"))),
+                    react_1.default.createElement("div", null,
+                        react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-3" }, "\uD83D\uDCCA Niveau d'activit\u00E9 global"),
+                        react_1.default.createElement("div", { className: "grid grid-cols-2 gap-3" }, [
+                            { value: 'Sédentaire', label: '🪑 Sédentaire', desc: 'Peu ou pas d\'exercice' },
+                            { value: 'Léger', label: '🚶 Légèrement actif', desc: '1-2 séances/sem' },
+                            { value: 'Modéré', label: '🏃 Modérément actif', desc: '3-4 séances/sem' },
+                            { value: 'Actif', label: '💪 Actif', desc: '5-6 séances/sem' },
+                            { value: 'Très actif', label: '🔥 Très actif', desc: 'Sport quotidien intense' }
+                        ].map(level => (react_1.default.createElement("button", { key: level.value, onClick: () => handleOnboardingChange('niveauActivite', level.value), className: `p-3 rounded-xl border-2 text-left transition ${onboardingData.niveauActivite === level.value
+                                ? 'border-green-500 bg-green-50 text-green-700'
+                                : 'border-gray-200 text-gray-700 hover:border-green-300'}` },
+                            react_1.default.createElement("p", { className: "font-medium text-sm" }, level.label),
+                            react_1.default.createElement("p", { className: "text-xs text-gray-600" }, level.desc)))))))),
+                onboardingStep === 7 && (react_1.default.createElement("div", { className: "bg-white rounded-2xl shadow-lg p-8 mb-6 space-y-6" },
+                    react_1.default.createElement("h2", { className: "text-3xl font-bold mb-2", style: { fontFamily: 'Fraunces' } }, "\uD83C\uDF73 Cuisine & \u00E9quipements"),
+                    react_1.default.createElement("p", { className: "text-gray-600" }, "Votre style de cuisine nous permet d'adapter les recettes : du batch cooking dominical pour les planificateurs, aux plats express pour les plus press\u00E9s."),
+                    react_1.default.createElement("div", null,
+                        react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-3" }, "\uD83D\uDC69\u200D\uD83C\uDF73 Votre style"),
+                        react_1.default.createElement("div", { className: "space-y-3" }, COOKING_STYLES.map(style => (react_1.default.createElement("button", { key: style.id, onClick: () => handleOnboardingChange('styleCuisine', style.id), className: `w-full p-4 rounded-xl border-2 text-left transition ${onboardingData.styleCuisine === style.id
+                                ? 'border-green-500 bg-green-50'
+                                : 'border-gray-200 hover:border-green-300'}` },
+                            react_1.default.createElement("div", { className: "flex items-start gap-3" },
+                                react_1.default.createElement("span", { className: "text-2xl" }, style.emoji),
+                                react_1.default.createElement("div", null,
+                                    react_1.default.createElement("p", { className: "font-medium text-gray-900" }, style.label),
+                                    react_1.default.createElement("p", { className: "text-xs text-gray-600" }, style.desc)))))))),
+                    ['quotidien', 'minimal'].includes(onboardingData.styleCuisine) && (react_1.default.createElement("div", null,
+                        react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-3" }, "Temps par jour"),
+                        react_1.default.createElement("div", { className: "flex items-center gap-4" },
+                            react_1.default.createElement("input", { type: "range", min: "0", max: "90", value: onboardingData.tempsCuisineSemaine, onChange: (e) => handleOnboardingChange('tempsCuisineSemaine', parseInt(e.target.value)), className: "flex-1" }),
+                            react_1.default.createElement("span", { className: "text-lg font-bold text-green-600 w-16 text-right" },
+                                onboardingData.tempsCuisineSemaine,
+                                " min")))),
+                    onboardingData.styleCuisine === 'batch' && (react_1.default.createElement("div", null,
+                        react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-3" }, "Temps le weekend"),
+                        react_1.default.createElement("div", { className: "flex items-center gap-4" },
+                            react_1.default.createElement("input", { type: "range", min: "30", max: "240", value: onboardingData.tempsCuisineWeekend, onChange: (e) => handleOnboardingChange('tempsCuisineWeekend', parseInt(e.target.value)), className: "flex-1" }),
+                            react_1.default.createElement("span", { className: "text-lg font-bold text-green-600 w-20 text-right" },
+                                onboardingData.tempsCuisineWeekend,
+                                " min")),
+                        react_1.default.createElement("p", { className: "text-xs text-gray-600 mt-2" }, "R\u00E9chauffage en semaine: ~15 min"))),
+                    onboardingData.styleCuisine === 'mixte' && (react_1.default.createElement(react_1.default.Fragment, null,
+                        react_1.default.createElement("div", null,
+                            react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-3" }, "Temps en semaine"),
+                            react_1.default.createElement("div", { className: "flex items-center gap-4" },
+                                react_1.default.createElement("input", { type: "range", min: "0", max: "60", value: onboardingData.tempsCuisineSemaine, onChange: (e) => handleOnboardingChange('tempsCuisineSemaine', parseInt(e.target.value)), className: "flex-1" }),
+                                react_1.default.createElement("span", { className: "text-lg font-bold text-green-600 w-16 text-right" },
+                                    onboardingData.tempsCuisineSemaine,
+                                    " min"))),
+                        react_1.default.createElement("div", null,
+                            react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-3" }, "Temps le weekend"),
+                            react_1.default.createElement("div", { className: "flex items-center gap-4" },
+                                react_1.default.createElement("input", { type: "range", min: "30", max: "240", value: onboardingData.tempsCuisineWeekend, onChange: (e) => handleOnboardingChange('tempsCuisineWeekend', parseInt(e.target.value)), className: "flex-1" }),
+                                react_1.default.createElement("span", { className: "text-lg font-bold text-green-600 w-20 text-right" },
+                                    onboardingData.tempsCuisineWeekend,
+                                    " min"))))),
+                    react_1.default.createElement("div", null,
+                        react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-3" }, "\uD83D\uDCB0 Budget alimentaire"),
+                        react_1.default.createElement("div", { className: "flex items-center gap-4" },
+                            react_1.default.createElement("input", { type: "range", min: "20", max: "200", step: "10", value: onboardingData.budget, onChange: (e) => handleOnboardingChange('budget', parseInt(e.target.value)), className: "flex-1" }),
+                            react_1.default.createElement("span", { className: "text-lg font-bold text-green-600 w-20 text-right" },
+                                onboardingData.budget,
+                                "\u20AC/sem"))),
+                    react_1.default.createElement("div", null,
+                        react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-3" }, "\uD83D\uDCCA Niveau en cuisine"),
+                        react_1.default.createElement("div", { className: "grid grid-cols-2 gap-3" }, [
+                            { value: 'debutant', label: '🥚 Débutant' },
+                            { value: 'intermediaire', label: '🍳 Intermédiaire' },
+                            { value: 'confirme', label: '👨‍🍳 Confirmé' },
+                            { value: 'chef', label: '⭐ Chef' }
+                        ].map(level => (react_1.default.createElement("button", { key: level.value, onClick: () => handleOnboardingChange('niveauCuisine', level.value), className: `py-2 px-3 rounded-xl border-2 font-medium transition text-sm ${onboardingData.niveauCuisine === level.value
+                                ? 'border-green-500 bg-green-50 text-green-700'
+                                : 'border-gray-200 text-gray-700 hover:border-green-300'}` }, level.label))))),
+                    react_1.default.createElement("div", null,
+                        react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-3" }, "\uD83D\uDD27 Vos \u00E9quipements de cuisine"),
+                        react_1.default.createElement("div", { className: "grid grid-cols-2 gap-3" }, EQUIPEMENTS_LIST.map(equip => (react_1.default.createElement("button", { key: equip.id, onClick: () => handleEquipements(equip.id), className: `p-3 rounded-xl border-2 text-center font-medium transition ${onboardingData.equipements.includes(equip.id)
+                                ? 'border-green-500 bg-green-50 text-green-700'
+                                : 'border-gray-200 text-gray-700 hover:border-green-300'}` },
+                            react_1.default.createElement("div", { className: "text-lg mb-1" }, equip.emoji),
+                            react_1.default.createElement("div", { className: "text-xs" }, equip.label)))))))),
+                onboardingStep === 8 && (react_1.default.createElement("div", { className: "bg-white rounded-2xl shadow-lg p-8 mb-6 space-y-6" },
+                    react_1.default.createElement("h2", { className: "text-3xl font-bold mb-2", style: { fontFamily: 'Fraunces' } }, "\uD83D\uDC8A Compl\u00E9ments alimentaires"),
+                    react_1.default.createElement("div", { className: "flex items-center gap-4 p-4 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-green-300 transition", onClick: () => handleOnboardingChange('complements', !onboardingData.complements) },
+                        react_1.default.createElement("input", { type: "checkbox", checked: onboardingData.complements, onChange: () => { }, className: "w-5 h-5" }),
+                        react_1.default.createElement("span", { className: "text-gray-700 font-medium" }, "Prenez-vous des compl\u00E9ments alimentaires ?")),
+                    onboardingData.complements && (react_1.default.createElement("div", null,
+                        react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-3" }, "S\u00E9lectionner vos compl\u00E9ments"),
+                        react_1.default.createElement("div", { className: "relative mb-3" },
+                            react_1.default.createElement("input", { type: "text", placeholder: "Rechercher un compl\u00E9ment...", value: onboardingData.complementSearch, onChange: (e) => handleOnboardingChange('complementSearch', e.target.value), className: "w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none" }),
+                            onboardingData.complementSearch && getFilteredComplements().length > 0 && (react_1.default.createElement("div", { className: "absolute top-full left-0 right-0 bg-white border-2 border-gray-200 rounded-xl mt-1 max-h-48 overflow-y-auto z-10" }, getFilteredComplements().map(comp => (react_1.default.createElement("button", { key: comp, onClick: () => handleAddComplement(comp), className: "w-full text-left px-4 py-2 hover:bg-green-50 border-b border-gray-200 last:border-b-0" }, comp)))))),
+                        react_1.default.createElement("div", { className: "flex flex-wrap gap-2" }, onboardingData.complementsSelected.map(comp => (react_1.default.createElement("div", { key: comp, className: "bg-blue-100 text-blue-900 px-3 py-1 rounded-full flex items-center gap-2" },
+                            comp,
+                            react_1.default.createElement("button", { onClick: () => handleRemoveComplement(comp), className: "text-blue-600 hover:text-blue-900" }, "\u00D7"))))))),
+                    react_1.default.createElement("p", { className: "text-xs text-gray-600" }, "\uD83D\uDCA1 Le scan de codes-barres sera disponible prochainement"))),
+                onboardingStep === 9 && (react_1.default.createElement("div", { className: "bg-white rounded-2xl shadow-lg p-8 mb-6 space-y-6" },
+                    react_1.default.createElement("h2", { className: "text-3xl font-bold mb-2", style: { fontFamily: 'Fraunces' } }, "\uD83D\uDCCD Localisation"),
+                    react_1.default.createElement("div", { className: "bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-6 text-sm text-blue-900" }, "\uD83D\uDCCD Votre localisation nous permet de vous proposer les fruits et l\u00E9gumes de saison de votre r\u00E9gion, de mettre en avant les produits locaux et sp\u00E9cialit\u00E9s r\u00E9gionales, de rep\u00E9rer les march\u00E9s locaux et leurs horaires, et de r\u00E9f\u00E9rencer les magasins proches pour optimiser votre liste de courses. Plus c'est pr\u00E9cis, plus nos recommandations seront pertinentes et \u00E9conomiques !"),
+                    react_1.default.createElement("div", null,
+                        react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-3" }, "\uD83C\uDF0D Pays"),
+                        react_1.default.createElement("div", { className: "relative" },
+                            react_1.default.createElement("input", { type: "text", placeholder: "Rechercher un pays...", value: onboardingData.paysSearch, onChange: (e) => handleOnboardingChange('paysSearch', e.target.value), className: "w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none" }),
+                            onboardingData.paysSearch && getFilteredCountries().length > 0 && (react_1.default.createElement("div", { className: "absolute top-full left-0 right-0 bg-white border-2 border-gray-200 rounded-xl mt-1 max-h-48 overflow-y-auto z-10" }, getFilteredCountries().map(country => (react_1.default.createElement("button", { key: country, onClick: () => {
+                                    setOnboardingData(prev => ({ ...prev, pays: country, paysSearch: country }));
+                                }, className: "w-full text-left px-4 py-2 hover:bg-green-50 border-b border-gray-200 last:border-b-0" }, country))))))),
+                    react_1.default.createElement("div", null,
+                        react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, "\uD83C\uDFD9\uFE0F Ville"),
+                        react_1.default.createElement("input", { type: "text", placeholder: "ex: Lyon, 69000", value: onboardingData.ville, onChange: (e) => handleOnboardingChange('ville', e.target.value), className: "w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none" })))),
+                onboardingStep === 10 && (react_1.default.createElement("div", { className: "bg-white rounded-2xl shadow-lg p-8 mb-6 space-y-6" },
+                    react_1.default.createElement("h2", { className: "text-3xl font-bold mb-2", style: { fontFamily: 'Fraunces' } }, "\u2705 R\u00E9capitulatif"),
+                    react_1.default.createElement("div", { className: "grid grid-cols-2 gap-4" },
+                        react_1.default.createElement("div", { className: "bg-green-50 border-2 border-green-200 rounded-xl p-4" },
+                            react_1.default.createElement("p", { className: "text-sm text-gray-600 mb-1" }, "Pr\u00E9nom"),
+                            react_1.default.createElement("p", { className: "font-bold text-gray-900" }, onboardingData.prenom || '—')),
+                        react_1.default.createElement("div", { className: "bg-green-50 border-2 border-green-200 rounded-xl p-4" },
+                            react_1.default.createElement("p", { className: "text-sm text-gray-600 mb-1" }, "\u00C2ge"),
+                            react_1.default.createElement("p", { className: "font-bold text-gray-900" },
+                                calculateAge(onboardingData.dateNaissance),
+                                " ans")),
+                        react_1.default.createElement("div", { className: "bg-green-50 border-2 border-green-200 rounded-xl p-4" },
+                            react_1.default.createElement("p", { className: "text-sm text-gray-600 mb-1" }, "Poids"),
+                            react_1.default.createElement("p", { className: "font-bold text-gray-900" },
+                                onboardingData.poids,
+                                " kg")),
+                        react_1.default.createElement("div", { className: "bg-green-50 border-2 border-green-200 rounded-xl p-4" },
+                            react_1.default.createElement("p", { className: "text-sm text-gray-600 mb-1" }, "Taille"),
+                            react_1.default.createElement("p", { className: "font-bold text-gray-900" },
+                                onboardingData.taille,
+                                " cm"))),
+                    (() => {
+                        const tdee = calculateTDEE(onboardingData);
+                        const macros = calculateMacros(tdee);
+                        return (react_1.default.createElement(react_1.default.Fragment, null,
+                            react_1.default.createElement("div", { className: "bg-blue-50 border-2 border-blue-200 rounded-xl p-6" },
+                                react_1.default.createElement("h3", { className: "font-bold text-blue-900 mb-4" }, "\uD83D\uDCCA Vos besoins caloriques"),
+                                react_1.default.createElement("p", { className: "text-3xl font-bold text-blue-600 mb-4" },
+                                    tdee,
+                                    " kcal/jour"),
+                                react_1.default.createElement("div", { className: "space-y-2 text-sm text-gray-700" },
+                                    react_1.default.createElement("p", null,
+                                        "\uD83E\uDD5A Prot\u00E9ines: ",
+                                        macros.proteines,
+                                        "g (",
+                                        Math.round((macros.proteines * 4) / tdee * 100),
+                                        "%)"),
+                                    react_1.default.createElement("p", null,
+                                        "\uD83C\uDF3E Glucides: ",
+                                        macros.glucides,
+                                        "g (",
+                                        Math.round((macros.glucides * 4) / tdee * 100),
+                                        "%)"),
+                                    react_1.default.createElement("p", null,
+                                        "\uD83E\uDD51 Lipides: ",
+                                        macros.lipides,
+                                        "g (",
+                                        Math.round((macros.lipides * 9) / tdee * 100),
+                                        "%)")))));
+                    })(),
+                    react_1.default.createElement("p", { className: "text-center text-gray-600" }, "Vous \u00EAtes pr\u00EAt \u00E0 commencer votre voyage nutritionnel!"))),
+                onboardingStep === 11 && (react_1.default.createElement("div", { className: "bg-white rounded-2xl shadow-lg p-8 mb-6 space-y-6" },
+                    react_1.default.createElement("h2", { className: "text-3xl font-bold mb-2", style: { fontFamily: 'Fraunces' } }, "\uD83E\uDDCA Inventaire initial"),
+                    react_1.default.createElement("p", { className: "text-gray-600" }, "Avant de commencer, faisons le tour de vos placards !"),
+                    react_1.default.createElement("p", { className: "text-sm text-gray-600" }, "Frigo, cong\u00E9lateur, cellier... \u00C7a nous aidera \u00E0 vous proposer des recettes avec ce que vous avez sous la main !"),
+                    react_1.default.createElement("div", { className: "relative" },
+                        react_1.default.createElement("input", { type: "text", placeholder: "Ajouter un aliment (ex: tomate, \u0153ufs, riz...)", onKeyPress: (e) => {
+                                if (e.key === 'Enter' && e.target.value.trim()) {
+                                    const val = e.target.value.trim();
+                                    setOnboardingData(prev => ({
+                                        ...prev,
+                                        initialInventory: [...prev.initialInventory, val]
+                                    }));
+                                    e.target.value = '';
+                                }
+                            }, className: "w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none" })),
+                    onboardingData.initialInventory.length > 0 && (react_1.default.createElement("div", { className: "space-y-2" }, onboardingData.initialInventory.map((item, idx) => (react_1.default.createElement("div", { key: idx, className: "flex items-center justify-between p-3 bg-gray-50 rounded-lg" },
+                        react_1.default.createElement("span", { className: "text-gray-700" }, item),
+                        react_1.default.createElement("button", { onClick: () => {
+                                setOnboardingData(prev => ({
+                                    ...prev,
+                                    initialInventory: prev.initialInventory.filter((_, i) => i !== idx)
+                                }));
+                            }, className: "text-red-600 hover:text-red-900" }, "\u00D7")))))))),
+                typeof onboardingStep === 'number' && (react_1.default.createElement("div", { className: "flex gap-4 mb-8" },
+                    react_1.default.createElement("button", { onClick: handleOnboardingPrev, disabled: onboardingStep === 1, className: "flex-1 px-6 py-3 bg-gray-300 hover:bg-gray-400 disabled:bg-gray-200 disabled:text-gray-400 text-gray-800 font-bold rounded-xl transition flex items-center justify-center gap-2" }, "\u2190 Pr\u00E9c\u00E9dent"),
+                    onboardingStep < 11 ? (react_1.default.createElement("button", { onClick: handleOnboardingNext, className: "flex-1 px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl transition flex items-center justify-center gap-2" }, "Suivant \u2192")) : (react_1.default.createElement(react_1.default.Fragment, null,
+                        react_1.default.createElement("button", { onClick: () => {
+                                const tdee = calculateTDEE(onboardingData);
+                                const macros = calculateMacros(tdee);
+                                const profile = {
+                                    ...onboardingData,
+                                    tdee,
+                                    macros,
+                                    createdAt: new Date().toISOString(),
+                                };
+                                setUserProfile(profile);
+                                localStorage.setItem('nf_user_profile', JSON.stringify(profile));
+                                localStorage.setItem('nf_onboarding_done', 'true');
+                                setCurrentScreen('app');
+                                addXP(50, 'Onboarding complété');
+                            }, className: "flex-1 px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl transition" }, "\u23ED\uFE0F Passer cette \u00E9tape"),
+                        react_1.default.createElement("button", { onClick: handleOnboardingNext, className: "flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl transition" }, "\u2705 Terminer")))))))));
+    }
+    // MAIN APP SCREEN
+    if (currentScreen === 'app' && userProfile) {
+        const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+        // ===== DASHBOARD SECTION =====
+        const DashboardSection = () => {
+            const todaysCalories = getTodaysCalories();
+            const tdee = userProfile.tdee || 2000;
+            const todaysMacros = getTodaysMacros();
+            const seasonalFoods = getSeasonalFoods();
+            const levelInfo = getLevelInfo(gamification.xp);
+            const streak = getStreak();
+            return (react_1.default.createElement("div", { className: "space-y-6" },
+                react_1.default.createElement("div", { className: "bg-gradient-to-r from-green-500 to-green-600 rounded-2xl p-6 text-white shadow-lg" },
+                    react_1.default.createElement("h2", { className: "text-3xl font-bold mb-1" },
+                        "Bonjour ",
+                        userProfile.prenom,
+                        " \uD83D\uDC4B"),
+                    react_1.default.createElement("p", { className: "text-green-100" }, new Date().toLocaleDateString('fr-FR', { weekday: 'long', month: 'long', day: 'numeric' }))),
+                react_1.default.createElement("div", { className: "grid grid-cols-3 gap-4" },
+                    react_1.default.createElement("div", { className: "bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-lg text-center" },
+                        react_1.default.createElement("div", { className: "text-3xl mb-2" }, "\uD83D\uDD25"),
+                        react_1.default.createElement("div", { className: "text-2xl font-bold text-orange-500" }, streak),
+                        react_1.default.createElement("p", { className: "text-sm text-gray-600 dark:text-gray-400" }, "Jour(s) de suite")),
+                    react_1.default.createElement("div", { className: "bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-lg text-center" },
+                        react_1.default.createElement("div", { className: "text-3xl mb-2" }, "\uD83D\uDCCA"),
+                        react_1.default.createElement("div", { className: "text-2xl font-bold text-blue-500" }, todaysCalories),
+                        react_1.default.createElement("p", { className: "text-sm text-gray-600 dark:text-gray-400" }, "kcal consomm\u00E9es")),
+                    react_1.default.createElement("div", { className: "bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-lg text-center" },
+                        react_1.default.createElement("div", { className: "text-3xl mb-2" }, "\u2B50"),
+                        react_1.default.createElement("div", { className: "text-2xl font-bold text-yellow-500" }, levelInfo.level),
+                        react_1.default.createElement("p", { className: "text-sm text-gray-600 dark:text-gray-400" }, "Niveau"))),
+                react_1.default.createElement("div", { className: "bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg" },
+                    react_1.default.createElement("h3", { className: "font-bold text-gray-800 dark:text-white mb-4" }, "Calories d'aujourd'hui"),
+                    react_1.default.createElement("div", { className: "flex items-center gap-6" },
+                        react_1.default.createElement("div", { className: "relative w-32 h-32" },
+                            react_1.default.createElement("svg", { className: "transform -rotate-90 w-32 h-32" },
+                                react_1.default.createElement("circle", { cx: "64", cy: "64", r: "56", fill: "none", stroke: "#e5e7eb", strokeWidth: "8" }),
+                                react_1.default.createElement("circle", { cx: "64", cy: "64", r: "56", fill: "none", stroke: "#16a34a", strokeWidth: "8", strokeDasharray: `${(todaysCalories / tdee) * 351.86} 351.86` })),
+                            react_1.default.createElement("div", { className: "absolute inset-0 flex flex-col items-center justify-center" },
+                                react_1.default.createElement("div", { className: "text-2xl font-bold text-gray-800 dark:text-white" }, todaysCalories),
+                                react_1.default.createElement("div", { className: "text-xs text-gray-600 dark:text-gray-400" },
+                                    "/ ",
+                                    tdee))),
+                        react_1.default.createElement("div", { className: "flex-1" },
+                            react_1.default.createElement("p", { className: "text-sm text-gray-600 dark:text-gray-400 mb-3" }, "Macronutriments"),
+                            react_1.default.createElement("div", { className: "space-y-2" },
+                                react_1.default.createElement("div", null,
+                                    react_1.default.createElement("div", { className: "flex justify-between text-xs mb-1" },
+                                        react_1.default.createElement("span", { className: "font-medium text-gray-700 dark:text-gray-300" }, "Prot\u00E9ines"),
+                                        react_1.default.createElement("span", { className: "text-gray-600 dark:text-gray-400" },
+                                            Math.round(todaysMacros.proteines),
+                                            "g")),
+                                    react_1.default.createElement("div", { className: "bg-gray-200 dark:bg-gray-700 rounded-full h-2" },
+                                        react_1.default.createElement("div", { className: "bg-red-500 h-2 rounded-full", style: { width: `${Math.min((todaysMacros.proteines / (userProfile.macros?.proteines || 150)) * 100, 100)}%` } }))),
+                                react_1.default.createElement("div", null,
+                                    react_1.default.createElement("div", { className: "flex justify-between text-xs mb-1" },
+                                        react_1.default.createElement("span", { className: "font-medium text-gray-700 dark:text-gray-300" }, "Glucides"),
+                                        react_1.default.createElement("span", { className: "text-gray-600 dark:text-gray-400" },
+                                            Math.round(todaysMacros.glucides),
+                                            "g")),
+                                    react_1.default.createElement("div", { className: "bg-gray-200 dark:bg-gray-700 rounded-full h-2" },
+                                        react_1.default.createElement("div", { className: "bg-yellow-500 h-2 rounded-full", style: { width: `${Math.min((todaysMacros.glucides / (userProfile.macros?.glucides || 225)) * 100, 100)}%` } }))),
+                                react_1.default.createElement("div", null,
+                                    react_1.default.createElement("div", { className: "flex justify-between text-xs mb-1" },
+                                        react_1.default.createElement("span", { className: "font-medium text-gray-700 dark:text-gray-300" }, "Lipides"),
+                                        react_1.default.createElement("span", { className: "text-gray-600 dark:text-gray-400" },
+                                            Math.round(todaysMacros.lipides),
+                                            "g")),
+                                    react_1.default.createElement("div", { className: "bg-gray-200 dark:bg-gray-700 rounded-full h-2" },
+                                        react_1.default.createElement("div", { className: "bg-blue-500 h-2 rounded-full", style: { width: `${Math.min((todaysMacros.lipides / (userProfile.macros?.lipides || 55)) * 100, 100)}%` } }))))))),
+                react_1.default.createElement("div", { className: "bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl p-6 text-white shadow-lg" },
+                    react_1.default.createElement("div", { className: "flex items-center justify-between mb-4" },
+                        react_1.default.createElement("div", null,
+                            react_1.default.createElement("h3", { className: "font-bold text-lg" },
+                                "Niveau: ",
+                                levelInfo.name,
+                                " ",
+                                levelInfo.emoji),
+                            react_1.default.createElement("p", { className: "text-purple-100" },
+                                "Niveau ",
+                                levelInfo.level,
+                                "/10")),
+                        react_1.default.createElement("div", { className: "text-4xl" }, levelInfo.emoji)),
+                    react_1.default.createElement("div", { className: "bg-white/20 rounded-full p-2" },
+                        react_1.default.createElement("div", { className: "bg-white/20 rounded-full h-3" },
+                            react_1.default.createElement("div", { className: "bg-white h-3 rounded-full transition-all duration-300", style: { width: `${(levelInfo.xpInLevel / levelInfo.xpNeeded) * 100}%` } }))),
+                    react_1.default.createElement("p", { className: "text-xs text-purple-100 mt-2" },
+                        levelInfo.xpInLevel,
+                        " / ",
+                        levelInfo.xpNeeded,
+                        " XP jusqu'\u00E0 ",
+                        levelInfo.nextLevel)),
+                react_1.default.createElement("div", { className: "bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg" },
+                    react_1.default.createElement("div", { className: "flex items-start justify-between mb-3" },
+                        react_1.default.createElement("h3", { className: "font-bold text-gray-800 dark:text-white" }, "\uD83D\uDCA1 Pens\u00E9e du jour"),
+                        react_1.default.createElement("button", { onClick: () => showToast('Nouvelle pensée générée!', 'success'), className: "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition", title: "Rafra\u00EEchir" },
+                            react_1.default.createElement(lucide_react_1.RefreshCw, { size: 18 }))),
+                    react_1.default.createElement("p", { className: "text-gray-700 dark:text-gray-300 italic" }, "\"La nutrition est une partie importante d'une vie saine. Continuez vos efforts et c\u00E9l\u00E9brez chaque petit progr\u00E8s! \uD83C\uDF31\"")),
+                weeklyPlanning[new Date().toISOString().split('T')[0]] && (react_1.default.createElement("div", { className: "bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg" },
+                    react_1.default.createElement("h3", { className: "font-bold text-gray-800 dark:text-white mb-4" }, "Repas d'aujourd'hui"),
+                    react_1.default.createElement("div", { className: "space-y-3" }, weeklyPlanning[new Date().toISOString().split('T')[0]].map((meal) => (react_1.default.createElement("div", { key: meal.timestamp, className: "flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg" },
+                        react_1.default.createElement("div", null,
+                            react_1.default.createElement("p", { className: "font-medium text-gray-800 dark:text-white" }, meal.name),
+                            react_1.default.createElement("p", { className: "text-xs text-gray-600 dark:text-gray-400" },
+                                Math.round(meal.calories),
+                                " kcal")),
+                        !meal.eaten ? (react_1.default.createElement("button", { onClick: () => markMealAsEaten(meal.timestamp), className: "px-3 py-1 bg-green-500 hover:bg-green-600 text-white text-sm rounded-lg transition" }, "Marqu\u00E9 comme mang\u00E9")) : (react_1.default.createElement("div", { className: "flex items-center gap-2 text-green-600 dark:text-green-400" },
+                            react_1.default.createElement(lucide_react_1.Check, { size: 18 }),
+                            " Mang\u00E9")))))))),
+                react_1.default.createElement("div", { className: "bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg" },
+                    react_1.default.createElement("h3", { className: "font-bold text-gray-800 dark:text-white mb-4" }, "\uD83C\uDF3F Aliments de saison"),
+                    react_1.default.createElement("div", { className: "grid grid-cols-2 md:grid-cols-3 gap-4" }, seasonalFoods.map((food, idx) => (react_1.default.createElement("div", { key: idx, className: "p-3 bg-gradient-to-br from-green-50 dark:from-green-900/20 to-emerald-50 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-800" },
+                        react_1.default.createElement("div", { className: "text-2xl mb-1" }, food.emoji),
+                        react_1.default.createElement("p", { className: "font-medium text-sm text-gray-800 dark:text-white" }, food.name),
+                        react_1.default.createElement("p", { className: "text-xs text-gray-600 dark:text-gray-400" }, food.benefits))))))));
+        };
+        // ===== PLANNING SECTION =====
+        const PlanningSection = () => {
+            const [selectedDate, setSelectedDate] = (0, react_1.useState)(new Date().toISOString().split('T')[0]);
+            const getDaysOfWeek = () => {
+                const days = [];
+                const today = new Date();
+                for (let i = 0; i < 7; i++) {
+                    const date = new Date(today);
+                    date.setDate(date.getDate() + i);
+                    days.push(date.toISOString().split('T')[0]);
+                }
+                return days;
+            };
+            const mealTypes = ['Petit-déj', 'Déjeuner', 'Collation', 'Dîner'];
+            return (react_1.default.createElement("div", { className: "space-y-6" },
+                react_1.default.createElement("div", { className: "flex gap-2 border-b border-gray-200 dark:border-gray-700" }, ['calendar', 'kanban', 'list'].map((tab) => (react_1.default.createElement("button", { key: tab, onClick: () => setPlanningTab(tab), className: `px-4 py-2 font-medium border-b-2 transition ${planningTab === tab
+                        ? 'border-green-500 text-green-600 dark:text-green-400'
+                        : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-300'}` },
+                    tab === 'calendar' && '📅 Calendrier',
+                    tab === 'kanban' && '📋 Kanban',
+                    tab === 'list' && '📝 Liste')))),
+                react_1.default.createElement("button", { onClick: handleGenerateMealPlan, disabled: loadingAI, className: "w-full px-6 py-3 bg-purple-500 hover:bg-purple-600 disabled:bg-purple-400 text-white rounded-lg font-medium transition flex items-center justify-center gap-2" },
+                    loadingAI ? react_1.default.createElement(lucide_react_1.Loader, { size: 20, className: "animate-spin" }) : react_1.default.createElement(lucide_react_1.Zap, { size: 20 }),
+                    "G\u00E9n\u00E9rer avec l'IA"),
+                planningTab === 'calendar' && (react_1.default.createElement("div", { className: "space-y-4" }, getDaysOfWeek().map((date) => (react_1.default.createElement("div", { key: date, className: "bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-lg" },
+                    react_1.default.createElement("h3", { className: "font-bold text-gray-800 dark:text-white mb-3" }, new Date(date).toLocaleDateString('fr-FR', { weekday: 'long', month: 'short', day: 'numeric' })),
+                    react_1.default.createElement("div", { className: "grid grid-cols-2 gap-2" }, mealTypes.map((mealType) => (react_1.default.createElement("button", { key: `${date}-${mealType}`, onClick: () => {
+                            setSelectedDate(date);
+                            setSelectedMealType(mealType);
+                            setShowMealModal(true);
+                        }, className: "p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition text-left" },
+                        react_1.default.createElement("p", { className: "text-sm font-medium text-gray-700 dark:text-gray-300" }, mealType),
+                        react_1.default.createElement("p", { className: "text-xs text-gray-500 dark:text-gray-400" },
+                            weeklyPlanning[date]?.filter(m => m.type === mealType).length || 0,
+                            " repas")))))))))),
+                planningTab === 'kanban' && (react_1.default.createElement("div", { className: "grid grid-cols-2 md:grid-cols-4 gap-4" }, mealTypes.map((mealType) => (react_1.default.createElement("div", { key: mealType, className: "bg-gray-100 dark:bg-gray-700 rounded-2xl p-4 max-h-96 overflow-y-auto" },
+                    react_1.default.createElement("h3", { className: "font-bold text-gray-800 dark:text-white mb-4" }, mealType),
+                    react_1.default.createElement("div", { className: "space-y-2" }, Object.entries(weeklyPlanning)
+                        .flatMap(([date, meals]) => meals
+                        .filter(m => m.type === mealType)
+                        .map((meal) => (react_1.default.createElement("div", { key: meal.timestamp, className: "p-3 bg-white dark:bg-gray-600 rounded-lg shadow-sm border-l-4 border-green-500" },
+                        react_1.default.createElement("p", { className: "text-sm font-medium text-gray-800 dark:text-white" }, meal.name),
+                        react_1.default.createElement("p", { className: "text-xs text-gray-600 dark:text-gray-400" }, "\u26A1 Drag me"))))))))))),
+                planningTab === 'list' && (react_1.default.createElement("div", { className: "bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg space-y-3" }, Object.entries(weeklyPlanning)
+                    .reverse()
+                    .slice(0, 7)
+                    .flatMap(([date, meals]) => meals.map((meal) => (react_1.default.createElement("div", { key: meal.timestamp, className: "flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-lg" },
+                    react_1.default.createElement("input", { type: "checkbox", checked: meal.eaten, onChange: () => markMealAsEaten(meal.timestamp), className: "w-4 h-4" }),
+                    react_1.default.createElement("div", { className: "flex-1" },
+                        react_1.default.createElement("p", { className: "font-medium text-gray-800 dark:text-white" }, meal.name),
+                        react_1.default.createElement("p", { className: "text-xs text-gray-600 dark:text-gray-400" }, new Date(date).toLocaleDateString('fr-FR'))),
+                    react_1.default.createElement("p", { className: "text-sm font-semibold text-green-600 dark:text-green-400" },
+                        Math.round(meal.calories),
+                        " kcal"))))))),
+                showMealModal && (react_1.default.createElement("div", { className: "fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" },
+                    react_1.default.createElement("div", { className: "bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md w-full max-h-96 overflow-y-auto" },
+                        react_1.default.createElement("div", { className: "flex justify-between items-center mb-4" },
+                            react_1.default.createElement("h3", { className: "font-bold text-gray-800 dark:text-white" }, "Ajouter un repas"),
+                            react_1.default.createElement("button", { onClick: () => setShowMealModal(false), className: "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" },
+                                react_1.default.createElement(lucide_react_1.X, { size: 24 }))),
+                        react_1.default.createElement("div", { className: "mb-4" },
+                            react_1.default.createElement("input", { type: "text", placeholder: "Rechercher un aliment...", value: mealSearch, onChange: (e) => {
+                                    setMealSearch(e.target.value);
+                                    if (e.target.value)
+                                        searchMeals(e.target.value);
+                                }, className: "w-full px-4 py-2 border-2 border-gray-200 dark:border-gray-700 rounded-lg dark:bg-gray-700 dark:text-white focus:border-green-500 focus:outline-none" })),
+                        searchingMeal && (react_1.default.createElement("div", { className: "flex items-center justify-center py-4" },
+                            react_1.default.createElement(lucide_react_1.Loader, { size: 24, className: "animate-spin text-green-500" }))),
+                        react_1.default.createElement("div", { className: "space-y-2" }, mealSearchResults.map((meal) => (react_1.default.createElement("button", { key: meal.id, onClick: () => addMealToPlanning({ ...meal, type: selectedMealType || 'Petit-déj' }), className: "w-full p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 border border-gray-200 dark:border-gray-600 transition text-left" },
+                            react_1.default.createElement("p", { className: "font-medium text-gray-800 dark:text-white" }, meal.name),
+                            react_1.default.createElement("p", { className: "text-xs text-gray-600 dark:text-gray-400" },
+                                Math.round(meal.calories),
+                                " kcal"))))))))));
+        };
+        // ===== SHOPPING & FRIDGE SECTION =====
+        const ShoppingFridgeSection = () => {
+            return (react_1.default.createElement("div", { className: "space-y-6" },
+                react_1.default.createElement("div", { className: "flex gap-2 border-b border-gray-200 dark:border-gray-700" }, ['fridge', 'shopping'].map((tab) => (react_1.default.createElement("button", { key: tab, onClick: () => setFridgeTab(tab), className: `px-4 py-2 font-medium border-b-2 transition ${fridgeTab === tab
+                        ? 'border-green-500 text-green-600 dark:text-green-400'
+                        : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-300'}` },
+                    tab === 'fridge' && '❄️ Frigo',
+                    tab === 'shopping' && '🛒 Courses')))),
+                fridgeTab === 'fridge' && (react_1.default.createElement("div", { className: "space-y-4" },
+                    react_1.default.createElement("div", { className: "relative" },
+                        react_1.default.createElement("input", { type: "text", placeholder: "Rechercher dans le frigo...", value: fridgeSearch, onChange: (e) => {
+                                setFridgeSearch(e.target.value);
+                                if (e.target.value)
+                                    searchFridge(e.target.value);
+                            }, className: "w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-lg dark:bg-gray-800 dark:text-white focus:border-green-500 focus:outline-none" }),
+                        searchingFridge && react_1.default.createElement(lucide_react_1.Loader, { size: 20, className: "absolute right-3 top-3 animate-spin text-green-500" })),
+                    fridgeSearchResults.length > 0 && (react_1.default.createElement("div", { className: "bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-lg space-y-2" },
+                        react_1.default.createElement("h3", { className: "font-bold text-gray-800 dark:text-white mb-3" }, "R\u00E9sultats de recherche"),
+                        fridgeSearchResults.map((item) => (react_1.default.createElement("div", { key: item.id, className: "flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg" },
+                            react_1.default.createElement("div", { className: "flex-1" },
+                                react_1.default.createElement("p", { className: "font-medium text-gray-800 dark:text-white" }, item.name),
+                                react_1.default.createElement("p", { className: "text-xs text-gray-600 dark:text-gray-400" },
+                                    "Score: ",
+                                    item.nutritionalScore)),
+                            react_1.default.createElement("button", { onClick: () => addItemToFridge(item), className: "px-3 py-1 bg-green-500 hover:bg-green-600 text-white text-sm rounded-lg transition" }, "+ Ajouter")))))),
+                    react_1.default.createElement("div", { className: "bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg" },
+                        react_1.default.createElement("h3", { className: "font-bold text-gray-800 dark:text-white mb-4" },
+                            "\uD83D\uDCE6 Contenu du frigo (",
+                            fridgeInventory.length,
+                            ")"),
+                        fridgeInventory.length === 0 ? (react_1.default.createElement("p", { className: "text-gray-600 dark:text-gray-400" }, "Votre frigo est vide. Ajoutez des aliments!")) : (react_1.default.createElement("div", { className: "space-y-2" }, fridgeInventory.map((item) => {
+                            const daysLeft = Math.ceil((new Date(item.dlc) - new Date()) / (1000 * 60 * 60 * 24));
+                            const isExpiring = daysLeft <= 2;
+                            return (react_1.default.createElement("div", { key: item.id, className: `flex items-center justify-between p-3 rounded-lg border-l-4 ${isExpiring
+                                    ? 'bg-red-50 dark:bg-red-900/20 border-red-500'
+                                    : 'bg-gray-50 dark:bg-gray-700 border-green-500'}` },
+                                react_1.default.createElement("div", { className: "flex-1" },
+                                    react_1.default.createElement("p", { className: "font-medium text-gray-800 dark:text-white" }, item.name),
+                                    react_1.default.createElement("p", { className: "text-xs text-gray-600 dark:text-gray-400" },
+                                        isExpiring && '⚠️ ',
+                                        " DLC: ",
+                                        new Date(item.dlc).toLocaleDateString('fr-FR'),
+                                        " (",
+                                        daysLeft,
+                                        " jours)")),
+                                react_1.default.createElement("button", { onClick: () => removeFromFridge(item.id), className: "text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition" },
+                                    react_1.default.createElement(lucide_react_1.Trash2, { size: 18 }))));
+                        })))))),
+                fridgeTab === 'shopping' && (react_1.default.createElement("div", { className: "space-y-4" },
+                    react_1.default.createElement("div", { className: "relative" },
+                        react_1.default.createElement("input", { type: "text", placeholder: "Ajouter un article...", onKeyPress: (e) => {
+                                if (e.key === 'Enter' && e.target.value.trim()) {
+                                    addItemToShoppingList({ name: e.target.value, category: 'Autre' });
+                                    e.target.value = '';
+                                }
+                            }, className: "w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-lg dark:bg-gray-800 dark:text-white focus:border-green-500 focus:outline-none" })),
+                    react_1.default.createElement("button", { onClick: moveShoppingToFridge, disabled: shoppingList.filter(i => i.checked).length === 0, className: "w-full px-6 py-3 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white rounded-lg font-medium transition" },
+                        "\u2705 Courses faites (",
+                        shoppingList.filter(i => i.checked).length,
+                        ")"),
+                    react_1.default.createElement("div", { className: "bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg" },
+                        react_1.default.createElement("h3", { className: "font-bold text-gray-800 dark:text-white mb-4" }, "\uD83D\uDED2 Liste de courses"),
+                        shoppingList.length === 0 ? (react_1.default.createElement("p", { className: "text-gray-600 dark:text-gray-400" }, "Aucun article \u00E0 acheter.")) : (react_1.default.createElement("div", { className: "space-y-2" }, shoppingList.map((item) => (react_1.default.createElement("div", { key: item.id, className: "flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg" },
+                            react_1.default.createElement("input", { type: "checkbox", checked: item.checked, onChange: () => toggleShoppingItem(item.id), className: "w-4 h-4" }),
+                            react_1.default.createElement("div", { className: "flex-1" },
+                                react_1.default.createElement("p", { className: `font-medium ${item.checked ? 'line-through text-gray-500' : 'text-gray-800 dark:text-white'}` }, item.name),
+                                react_1.default.createElement("p", { className: "text-xs text-gray-600 dark:text-gray-400" }, item.category)),
+                            react_1.default.createElement("button", { onClick: () => {
+                                    const updated = shoppingList.filter(i => i.id !== item.id);
+                                    setShoppingList(updated);
+                                    localStorage.setItem('nf_shopping_list', JSON.stringify(updated));
+                                }, className: "text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition" },
+                                react_1.default.createElement(lucide_react_1.X, { size: 18 }))))))))))));
+        };
+        // ===== TRACKING SECTION =====
+        const TrackingSection = () => {
+            const chartData = dailyLogs.map((log) => ({
+                date: new Date(log.date).toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' }),
+                poids: parseFloat(log.weight),
+            }));
+            const caloriesChartData = Object.entries(weeklyPlanning)
+                .slice(-7)
+                .map(([date, meals]) => ({
+                date: new Date(date).toLocaleDateString('fr-FR', { weekday: 'short' }),
+                calories: meals.reduce((sum, m) => sum + (m.calories || 0), 0),
+                target: userProfile.tdee,
+            }));
+            const macrosData = [
+                { name: 'Protéines', value: Math.round(getTodaysMacros().proteines), fill: '#ef4444' },
+                { name: 'Glucides', value: Math.round(getTodaysMacros().glucides), fill: '#eab308' },
+                { name: 'Lipides', value: Math.round(getTodaysMacros().lipides), fill: '#3b82f6' },
+            ];
+            return (react_1.default.createElement("div", { className: "space-y-6" },
+                react_1.default.createElement("button", { onClick: () => setShowLogModal(true), className: "w-full px-6 py-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-2xl font-bold transition flex items-center justify-center gap-2 shadow-lg" },
+                    react_1.default.createElement(lucide_react_1.Plus, { size: 24 }),
+                    " Enregistrer une mesure"),
+                chartData.length > 0 && (react_1.default.createElement("div", { className: "bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg" },
+                    react_1.default.createElement("h3", { className: "font-bold text-gray-800 dark:text-white mb-4" }, "\uD83D\uDCC8 \u00C9volution du poids"),
+                    react_1.default.createElement(recharts_1.ResponsiveContainer, { width: "100%", height: 300 },
+                        react_1.default.createElement(recharts_1.LineChart, { data: chartData },
+                            react_1.default.createElement(recharts_1.CartesianGrid, { strokeDasharray: "3 3", stroke: "#e5e7eb" }),
+                            react_1.default.createElement(recharts_1.XAxis, { dataKey: "date", stroke: "#9ca3af" }),
+                            react_1.default.createElement(recharts_1.YAxis, { stroke: "#9ca3af" }),
+                            react_1.default.createElement(recharts_1.Tooltip, { contentStyle: { backgroundColor: '#f3f4f6', border: 'none', borderRadius: '8px' } }),
+                            react_1.default.createElement(recharts_1.Line, { type: "monotone", dataKey: "poids", stroke: "#16a34a", strokeWidth: 2, dot: { fill: '#16a34a', r: 4 } }))))),
+                caloriesChartData.length > 0 && (react_1.default.createElement("div", { className: "bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg" },
+                    react_1.default.createElement("h3", { className: "font-bold text-gray-800 dark:text-white mb-4" }, "\uD83D\uDD25 Calories consomm\u00E9es vs cible"),
+                    react_1.default.createElement(recharts_1.ResponsiveContainer, { width: "100%", height: 300 },
+                        react_1.default.createElement(recharts_1.BarChart, { data: caloriesChartData },
+                            react_1.default.createElement(recharts_1.CartesianGrid, { strokeDasharray: "3 3", stroke: "#e5e7eb" }),
+                            react_1.default.createElement(recharts_1.XAxis, { dataKey: "date", stroke: "#9ca3af" }),
+                            react_1.default.createElement(recharts_1.YAxis, { stroke: "#9ca3af" }),
+                            react_1.default.createElement(recharts_1.Tooltip, { contentStyle: { backgroundColor: '#f3f4f6', border: 'none', borderRadius: '8px' } }),
+                            react_1.default.createElement(recharts_1.Legend, null),
+                            react_1.default.createElement(recharts_1.Bar, { dataKey: "calories", fill: "#16a34a", name: "Consomm\u00E9es" }),
+                            react_1.default.createElement(recharts_1.Bar, { dataKey: "target", fill: "#9ca3af", name: "Cible" }))))),
+                macrosData.some(m => m.value > 0) && (react_1.default.createElement("div", { className: "bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg" },
+                    react_1.default.createElement("h3", { className: "font-bold text-gray-800 dark:text-white mb-4" }, "\uD83E\uDD57 Distribution macros (aujourd'hui)"),
+                    react_1.default.createElement(recharts_1.ResponsiveContainer, { width: "100%", height: 300 },
+                        react_1.default.createElement(recharts_1.PieChart, null,
+                            react_1.default.createElement(recharts_1.Pie, { data: macrosData, cx: "50%", cy: "50%", labelLine: false, label: ({ name, value }) => `${name}: ${value}g`, outerRadius: 100, fill: "#8884d8", dataKey: "value" }, macrosData.map((entry, index) => (react_1.default.createElement(recharts_1.Cell, { key: `cell-${index}`, fill: entry.fill })))),
+                            react_1.default.createElement(recharts_1.Tooltip, null))))),
+                dailyLogs.length > 0 && (react_1.default.createElement("div", { className: "bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg" },
+                    react_1.default.createElement("h3", { className: "font-bold text-gray-800 dark:text-white mb-4" }, "\uD83D\uDCCB Historique"),
+                    react_1.default.createElement("div", { className: "space-y-2 max-h-64 overflow-y-auto" }, [...dailyLogs].reverse().map((log) => (react_1.default.createElement("div", { key: log.id, className: "flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg" },
+                        react_1.default.createElement("div", null,
+                            react_1.default.createElement("p", { className: "font-medium text-gray-800 dark:text-white" }, new Date(log.date).toLocaleDateString('fr-FR')),
+                            react_1.default.createElement("p", { className: "text-xs text-gray-600 dark:text-gray-400" },
+                                "Poids: ",
+                                log.weight,
+                                "kg | MG: ",
+                                log.bodyFat,
+                                "%")),
+                        react_1.default.createElement("div", { className: "flex gap-1" }, [...Array(log.energy)].map((_, i) => (react_1.default.createElement("span", { key: `e${i}` }, "\u26A1")))))))))),
+                showLogModal && (react_1.default.createElement("div", { className: "fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" },
+                    react_1.default.createElement("div", { className: "bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md w-full" },
+                        react_1.default.createElement("div", { className: "flex justify-between items-center mb-4" },
+                            react_1.default.createElement("h3", { className: "font-bold text-gray-800 dark:text-white" }, "Enregistrer une mesure"),
+                            react_1.default.createElement("button", { onClick: () => setShowLogModal(false), className: "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" },
+                                react_1.default.createElement(lucide_react_1.X, { size: 24 }))),
+                        react_1.default.createElement("form", { onSubmit: addDailyLog, className: "space-y-4" },
+                            react_1.default.createElement("div", null,
+                                react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" }, "Poids (kg)"),
+                                react_1.default.createElement("input", { type: "number", step: "0.1", value: newLog.weight, onChange: (e) => setNewLog({ ...newLog, weight: e.target.value }), className: "w-full px-4 py-2 border-2 border-gray-200 dark:border-gray-700 rounded-lg dark:bg-gray-700 dark:text-white focus:border-green-500 focus:outline-none", required: true })),
+                            react_1.default.createElement("div", null,
+                                react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" }, "Masse grasse (%)"),
+                                react_1.default.createElement("input", { type: "number", step: "0.1", value: newLog.bodyFat, onChange: (e) => setNewLog({ ...newLog, bodyFat: e.target.value }), className: "w-full px-4 py-2 border-2 border-gray-200 dark:border-gray-700 rounded-lg dark:bg-gray-700 dark:text-white focus:border-green-500 focus:outline-none", required: true })),
+                            react_1.default.createElement("div", null,
+                                react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" },
+                                    "\u00C9nergie: ",
+                                    newLog.energy,
+                                    "/10"),
+                                react_1.default.createElement("input", { type: "range", min: "1", max: "10", value: newLog.energy, onChange: (e) => setNewLog({ ...newLog, energy: parseInt(e.target.value) }), className: "w-full" })),
+                            react_1.default.createElement("div", null,
+                                react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" },
+                                    "Sommeil: ",
+                                    newLog.sleep,
+                                    "/10"),
+                                react_1.default.createElement("input", { type: "range", min: "1", max: "10", value: newLog.sleep, onChange: (e) => setNewLog({ ...newLog, sleep: parseInt(e.target.value) }), className: "w-full" })),
+                            react_1.default.createElement("div", null,
+                                react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" }, "Notes"),
+                                react_1.default.createElement("textarea", { value: newLog.notes, onChange: (e) => setNewLog({ ...newLog, notes: e.target.value }), className: "w-full px-4 py-2 border-2 border-gray-200 dark:border-gray-700 rounded-lg dark:bg-gray-700 dark:text-white focus:border-green-500 focus:outline-none", rows: "3" })),
+                            react_1.default.createElement("button", { type: "submit", className: "w-full px-6 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition" }, "Enregistrer")))))));
+        };
+        // ===== SETTINGS SECTION =====
+        const SettingsSection = () => {
+            return (react_1.default.createElement("div", { className: "space-y-6" },
+                react_1.default.createElement("div", { className: "bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg" },
+                    react_1.default.createElement("div", { className: "flex items-center justify-between" },
+                        react_1.default.createElement("div", null,
+                            react_1.default.createElement("h3", { className: "font-bold text-gray-800 dark:text-white" }, "Th\u00E8me sombre"),
+                            react_1.default.createElement("p", { className: "text-sm text-gray-600 dark:text-gray-400" }, "Basculer entre clair et sombre")),
+                        react_1.default.createElement("button", { onClick: () => {
+                                setDarkMode(!darkMode);
+                                localStorage.setItem('nf_app_theme', !darkMode ? 'dark' : 'light');
+                            }, className: `px-4 py-2 rounded-lg font-medium transition ${darkMode ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-800'}` }, darkMode ? react_1.default.createElement(lucide_react_1.Moon, { size: 20 }) : react_1.default.createElement(lucide_react_1.Sun, { size: 20 })))),
+                react_1.default.createElement("div", { className: "bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg" },
+                    react_1.default.createElement("h3", { className: "font-bold text-gray-800 dark:text-white mb-4" }, "Cl\u00E9 API Anthropic"),
+                    react_1.default.createElement("input", { type: "password", placeholder: "sk-ant-...", value: apiKey, onChange: (e) => setApiKey(e.target.value), className: "w-full px-4 py-2 border-2 border-gray-200 dark:border-gray-700 rounded-lg dark:bg-gray-700 dark:text-white focus:border-green-500 focus:outline-none mb-3" }),
+                    react_1.default.createElement("button", { onClick: handleSaveApiKey, className: "w-full px-6 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition" }, "Sauvegarder la cl\u00E9"),
+                    react_1.default.createElement("p", { className: "text-xs text-gray-600 dark:text-gray-400 mt-2" }, "N\u00E9cessaire pour les plans de repas g\u00E9n\u00E9r\u00E9s par IA")),
+                react_1.default.createElement("div", { className: "bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg" },
+                    react_1.default.createElement("h3", { className: "font-bold text-gray-800 dark:text-white mb-4" }, "Changer le mot de passe"),
+                    react_1.default.createElement("form", { onSubmit: handleChangePassword, className: "space-y-3" },
+                        react_1.default.createElement("input", { type: "password", name: "currentPassword", placeholder: "Mot de passe actuel", className: "w-full px-4 py-2 border-2 border-gray-200 dark:border-gray-700 rounded-lg dark:bg-gray-700 dark:text-white focus:border-green-500 focus:outline-none", required: true }),
+                        react_1.default.createElement("input", { type: "password", name: "newPassword", placeholder: "Nouveau mot de passe", className: "w-full px-4 py-2 border-2 border-gray-200 dark:border-gray-700 rounded-lg dark:bg-gray-700 dark:text-white focus:border-green-500 focus:outline-none", required: true }),
+                        react_1.default.createElement("input", { type: "password", name: "confirmPassword", placeholder: "Confirmer le nouveau mot de passe", className: "w-full px-4 py-2 border-2 border-gray-200 dark:border-gray-700 rounded-lg dark:bg-gray-700 dark:text-white focus:border-green-500 focus:outline-none", required: true }),
+                        react_1.default.createElement("button", { type: "submit", className: "w-full px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition" }, "Mettre \u00E0 jour"))),
+                react_1.default.createElement("div", { className: "bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg" },
+                    react_1.default.createElement("div", { className: "flex items-center justify-between mb-4" },
+                        react_1.default.createElement("h3", { className: "font-bold text-gray-800 dark:text-white" }, "Profil"),
+                        react_1.default.createElement("button", { onClick: () => setEditingProfile(!editingProfile), className: "text-green-500 hover:text-green-600 transition" },
+                            react_1.default.createElement(lucide_react_1.Edit2, { size: 20 }))),
+                    react_1.default.createElement("div", { className: "space-y-2 text-sm text-gray-600 dark:text-gray-400" },
+                        react_1.default.createElement("p", null,
+                            react_1.default.createElement("strong", null, "Pr\u00E9nom:"),
+                            " ",
+                            userProfile.prenom),
+                        react_1.default.createElement("p", null,
+                            react_1.default.createElement("strong", null, "\u00C2ge:"),
+                            " ",
+                            userProfile.age,
+                            " ans"),
+                        react_1.default.createElement("p", null,
+                            react_1.default.createElement("strong", null, "Poids:"),
+                            " ",
+                            userProfile.poids,
+                            " kg"),
+                        react_1.default.createElement("p", null,
+                            react_1.default.createElement("strong", null, "Calories cibles:"),
+                            " ",
+                            userProfile.tdee,
+                            " kcal/jour"),
+                        react_1.default.createElement("p", null,
+                            react_1.default.createElement("strong", null, "Objectif:"),
+                            " ",
+                            userProfile.objectif))),
+                react_1.default.createElement("div", { className: "bg-red-50 dark:bg-red-900/20 rounded-2xl p-6 shadow-lg border border-red-200 dark:border-red-800" },
+                    react_1.default.createElement("h3", { className: "font-bold text-red-900 dark:text-red-200 mb-4" }, "Zone danger"),
+                    react_1.default.createElement("button", { onClick: () => setShowResetConfirm(true), className: "w-full px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition" }, "R\u00E9initialiser l'app"),
+                    react_1.default.createElement("p", { className: "text-xs text-red-700 dark:text-red-300 mt-2" }, "Ceci supprimera toutes les donn\u00E9es. Action irr\u00E9versible!")),
+                showResetConfirm && (react_1.default.createElement("div", { className: "fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" },
+                    react_1.default.createElement("div", { className: "bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md w-full" },
+                        react_1.default.createElement("h3", { className: "font-bold text-red-600 dark:text-red-400 mb-4 text-lg" }, "\u00CAtes-vous certain?"),
+                        react_1.default.createElement("p", { className: "text-gray-700 dark:text-gray-300 mb-6" }, "Cette action supprimera TOUTES vos donn\u00E9es. Il n'y a pas de retour en arri\u00E8re."),
+                        react_1.default.createElement("form", { onSubmit: handleResetApp, className: "space-y-4" },
+                            react_1.default.createElement("input", { type: "password", name: "resetPassword", placeholder: "Entrez votre mot de passe pour confirmer", className: "w-full px-4 py-2 border-2 border-gray-200 dark:border-gray-700 rounded-lg dark:bg-gray-700 dark:text-white focus:border-red-500 focus:outline-none", required: true }),
+                            react_1.default.createElement("div", { className: "flex gap-3" },
+                                react_1.default.createElement("button", { type: "button", onClick: () => setShowResetConfirm(false), className: "flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg font-medium transition hover:bg-gray-400 dark:hover:bg-gray-600" }, "Annuler"),
+                                react_1.default.createElement("button", { type: "submit", className: "flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition" }, "R\u00E9initialiser"))))))));
+        };
+        // MAIN RENDER
+        return (react_1.default.createElement("div", { className: `min-h-screen ${darkMode ? 'dark bg-gray-900' : 'bg-gray-50'} transition-colors` },
+            toast && (react_1.default.createElement("div", { className: "fixed top-4 right-4 z-50 animate-in fade-in slide-in-from-top-4" },
+                react_1.default.createElement("div", { className: `px-6 py-4 rounded-lg shadow-lg text-white font-medium ${toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'}` }, toast.message))),
+            react_1.default.createElement("div", { className: "flex h-screen overflow-hidden" },
+                !isMobile && (react_1.default.createElement("div", { className: "w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col" },
+                    react_1.default.createElement("div", { className: "p-6 border-b border-gray-200 dark:border-gray-700" },
+                        react_1.default.createElement("h1", { className: "text-2xl font-bold text-green-600", style: { fontFamily: 'Fraunces' } }, "\uD83C\uDF3F NutriFlow")),
+                    react_1.default.createElement("nav", { className: "flex-1 p-4 space-y-2" }, [
+                        { id: 'home', icon: lucide_react_1.Home, label: 'Accueil' },
+                        { id: 'planning', icon: lucide_react_1.Calendar, label: 'Planning' },
+                        { id: 'shopping', icon: lucide_react_1.ShoppingCart, label: 'Courses & Frigo' },
+                        { id: 'tracking', icon: lucide_react_1.BarChart2, label: 'Suivi' },
+                        { id: 'settings', icon: lucide_react_1.Settings, label: 'Paramètres' },
+                    ].map((item) => (react_1.default.createElement("button", { key: item.id, onClick: () => setActiveSection(item.id), className: `w-full px-4 py-3 rounded-lg font-medium flex items-center gap-3 transition ${activeSection === item.id
+                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'}` },
+                        react_1.default.createElement(item.icon, { size: 20 }),
+                        item.label)))),
+                    react_1.default.createElement("div", { className: "p-4 border-t border-gray-200 dark:border-gray-700" },
+                        react_1.default.createElement("button", { onClick: () => {
+                                setCurrentScreen('password');
+                                setPassword('');
+                            }, className: "w-full px-4 py-3 bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-red-200 dark:hover:bg-red-900/40 transition" },
+                            react_1.default.createElement(lucide_react_1.LogOut, { size: 18 }),
+                            " D\u00E9connexion")))),
+                react_1.default.createElement("div", { className: "flex-1 flex flex-col overflow-hidden" },
+                    react_1.default.createElement("div", { className: "flex-1 overflow-y-auto" },
+                        react_1.default.createElement("div", { className: "p-4 md:p-8" },
+                            activeSection === 'home' && react_1.default.createElement(DashboardSection, null),
+                            activeSection === 'planning' && react_1.default.createElement(PlanningSection, null),
+                            activeSection === 'shopping' && react_1.default.createElement(ShoppingFridgeSection, null),
+                            activeSection === 'tracking' && react_1.default.createElement(TrackingSection, null),
+                            activeSection === 'settings' && react_1.default.createElement(SettingsSection, null))),
+                    isMobile && (react_1.default.createElement("div", { className: "border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 grid grid-cols-5 gap-0" }, [
+                        { id: 'home', icon: lucide_react_1.Home, label: 'Accueil' },
+                        { id: 'planning', icon: lucide_react_1.Calendar, label: 'Planning' },
+                        { id: 'shopping', icon: lucide_react_1.ShoppingCart, label: 'Courses' },
+                        { id: 'tracking', icon: lucide_react_1.BarChart2, label: 'Suivi' },
+                        { id: 'settings', icon: lucide_react_1.Settings, label: 'Paramètres' },
+                    ].map((item) => (react_1.default.createElement("button", { key: item.id, onClick: () => setActiveSection(item.id), className: `py-3 flex flex-col items-center gap-1 text-xs transition ${activeSection === item.id
+                            ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
+                            : 'text-gray-600 dark:text-gray-400'}` },
+                        react_1.default.createElement(item.icon, { size: 24 }),
+                        react_1.default.createElement("span", null, item.label)))))))),
+            isMobile && activeSection === 'tracking' && (react_1.default.createElement("button", { onClick: () => setShowLogModal(true), className: "fixed bottom-24 right-4 w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-full flex items-center justify-center shadow-2xl transition transform hover:scale-110 z-40" },
+                react_1.default.createElement(lucide_react_1.Plus, { size: 32 })))));
+    }
+    return null;
+};
+exports.default = NutriFlow;
+  </script>
+
+  <script>
+  // Mount the app
+  (function() {
+    try {
+      var App = exports.default || module.exports.default || module.exports;
+      if (!App) {
+        throw new Error('NutriFlow component not found in exports');
+      }
+      var root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(React.createElement(App));
+      console.log('NutriFlow mounted successfully');
+    } catch(e) {
+      console.error('Mount error:', e);
+      document.getElementById('root').innerHTML = '<div style="padding:40px;font-family:monospace;background:#fee;color:#900;border:2px solid #f00;margin:20px;border-radius:12px;"><h2>Erreur de montage</h2><pre>' + e.message + '\n' + (e.stack || '') + '</pre></div>';
+    }
+  })();
+  </script>
+</body>
+</html>
