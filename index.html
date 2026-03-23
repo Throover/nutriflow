@@ -4,19 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>NutriFlow — Suivi nutritionnel intelligent</title>
-
-  <!-- PWA / iOS Home Screen -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="NutriFlow">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#16a34a">
-  <meta name="description" content="Votre compagnon nutritionnel intelligent — suivi, planning et bien-être">
-
-  <!-- Icône pour l'écran d'accueil iOS -->
+  <meta name="description" content="Votre compagnon nutritionnel intelligent">
   <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%2316a34a'/><text y='.85em' font-size='72' x='14'>🌿</text></svg>">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>">
-
   <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
   <script src="https://cdn.tailwindcss.com"></script>
@@ -28,70 +23,47 @@
     h1, h2, h3, h4, h5, h6 { font-family: 'Fraunces', serif; }
     html { scroll-behavior: smooth; }
     body {
-      margin: 0;
-      padding: 0;
-      /* Support encoche iPhone (Dynamic Island, notch) */
+      margin: 0; padding: 0;
       padding-top: env(safe-area-inset-top);
       padding-bottom: env(safe-area-inset-bottom);
       padding-left: env(safe-area-inset-left);
       padding-right: env(safe-area-inset-right);
     }
-    /* Évite le rebond de scroll iOS */
     html, body { height: 100%; overflow-x: hidden; }
-    /* Tap highlight désactivé sur mobile */
     * { -webkit-tap-highlight-color: transparent; }
-    /* Inputs et boutons sans style natif iOS */
     input, button, select, textarea { -webkit-appearance: none; appearance: none; }
     input[type="date"], input[type="time"] { -webkit-appearance: textfield; }
+    input[type="range"] { -webkit-appearance: auto; appearance: auto; }
   </style>
 </head>
 <body>
   <div id="root"></div>
-
   <script>
-  // Error boundary
   window.onerror = function(msg, url, lineNo, columnNo, error) {
     var el = document.getElementById('root');
-    el.innerHTML = '<div style="padding:40px;font-family:monospace;background:#fee;color:#900;border:2px solid #f00;margin:20px;border-radius:12px;"><h2>Erreur</h2><pre>' + msg + '\nLine: ' + lineNo + '\nCol: ' + columnNo + (error && error.stack ? '\n\n' + error.stack : '') + '</pre></div>';
+    el.innerHTML = '<div style="padding:20px;font-family:monospace;background:#fee;color:#900;border:2px solid #f00;margin:10px;border-radius:12px;"><h2>Erreur</h2><pre style="white-space:pre-wrap;word-break:break-all;">' + msg + '\nLine: ' + lineNo + (error && error.stack ? '\n\n' + error.stack : '') + '</pre></div>';
     return false;
   };
-
-  // Setup module system shim
   var exports = {};
   var module = { exports: exports };
-
-  // Setup require shim for compiled modules
   function require(mod) {
     if (mod === 'react') return React;
     if (mod === 'lucide-react') return window.lucideReact || window.LucideReact || {};
     if (mod === 'recharts') return window.Recharts || {};
-    console.warn('Unknown module:', mod);
     return {};
   }
-
-  // Ensure React globals are accessible
   React.default = React;
-
-  // Map Lucide icons
   (function() {
     var LR = window.lucideReact || window.LucideReact || {};
-    // Create fallback icon component
     var fallbackIcon = function(props) {
       return React.createElement('span', {style: {display: 'inline-block', width: (props && props.size || 24)+'px', height: (props && props.size || 24)+'px', textAlign: 'center', lineHeight: (props && props.size || 24)+'px'}}, '•');
     };
-
-    // All icons used in the app
     var iconNames = ['Heart','Home','Calendar','ShoppingCart','BarChart2','Settings','Eye','EyeOff','ChevronRight','ChevronLeft','Plus','X','Trash2','Check','Lock','LogOut','Download','Upload','TrendingUp','Flame','AlertCircle','Loader','Apple','Salad','Utensils','Zap','Moon','Sun','Search','Edit2','Save','Copy','RefreshCw','Menu','Grid3x3','List'];
-    iconNames.forEach(function(name) {
-      if (!LR[name]) {
-        LR[name] = fallbackIcon;
-      }
-    });
+    iconNames.forEach(function(name) { if (!LR[name]) LR[name] = fallbackIcon; });
     window.lucideReact = LR;
     window.LucideReact = LR;
   })();
   </script>
-
   <script>
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -245,9 +217,9 @@ const NutriFlow = () => {
             return 0;
         const first = times[0].split(':').map(Number);
         const last = times[times.length - 1].split(':').map(Number);
-        const eatingWindow = (last[0] * 60 + last[1]) - (first[0] * 60 + first[1]);
-        const fastingMinutes = 24 * 60 - eatingWindow - 60;
-        return Math.max(0, Math.round(fastingMinutes / 60));
+        const eatingWindowMinutes = (last[0] * 60 + last[1]) - (first[0] * 60 + first[1]);
+        const fastingHours = (24 * 60 - eatingWindowMinutes) / 60;
+        return Math.max(0, Math.round(fastingHours));
     };
     const calculateTDEE = (profile) => {
         const { poids, taille, dateNaissance, sexe, niveauActivite, marcheKm } = profile;
@@ -562,15 +534,32 @@ const NutriFlow = () => {
         }));
     };
     const handleRegimes = (regimeId) => {
+        const REGIME_CONFLICTS = {
+            'omnivore': ['vegan', 'vegetarien'],
+            'vegan': ['omnivore', 'vegetarien'],
+            'vegetarien': ['omnivore', 'vegan'],
+            'flexitarien': ['omnivore'],
+            'sans-gluten': [],
+            'sans-lactose': [],
+            'keto': [],
+            'paleo': [],
+        };
         setOnboardingData(prev => {
-            const updated = prev.regimes.includes(regimeId)
-                ? prev.regimes.filter(r => r !== regimeId)
-                : [...prev.regimes, regimeId];
-            // Auto-add sans-lactose to regimes (not allergies) when vegan is selected
-            const regimesWithAuto = updated.includes('vegan') && !updated.includes('sans-lactose')
-                ? [...updated, 'sans-lactose']
-                : updated;
-            return { ...prev, regimes: regimesWithAuto };
+            let updated;
+            if (prev.regimes.includes(regimeId)) {
+                // Deselecting
+                updated = prev.regimes.filter(r => r !== regimeId);
+            }
+            else {
+                // Selecting - remove conflicts first
+                const conflicts = REGIME_CONFLICTS[regimeId] || [];
+                updated = [...prev.regimes.filter(r => !conflicts.includes(r)), regimeId];
+            }
+            // Auto-add sans-lactose when vegan is selected
+            if (updated.includes('vegan') && !updated.includes('sans-lactose')) {
+                updated = [...updated, 'sans-lactose'];
+            }
+            return { ...prev, regimes: updated };
         });
     };
     const handleAddAllergen = (allergen) => {
@@ -913,8 +902,8 @@ const NutriFlow = () => {
         return (react_1.default.createElement("div", { className: "min-h-screen bg-gradient-to-br from-green-50 to-emerald-50" },
             onboardingStep === 'intro' && (react_1.default.createElement("div", { className: "min-h-screen flex items-center justify-center px-4" },
                 react_1.default.createElement("div", { className: "max-w-2xl w-full text-center" },
-                    react_1.default.createElement("div", { className: "text-8xl mb-8" }, "\uD83C\uDF3F"),
-                    react_1.default.createElement("h1", { className: "text-5xl font-bold mb-6 text-gray-900", style: { fontFamily: 'Fraunces' } }, "Premiers pas"),
+                    react_1.default.createElement("div", { className: "text-6xl md:text-8xl mb-8" }, "\uD83C\uDF3F"),
+                    react_1.default.createElement("h1", { className: "text-3xl md:text-5xl font-bold mb-6 text-gray-900", style: { fontFamily: 'Fraunces' } }, "Premiers pas"),
                     react_1.default.createElement("p", { className: "text-lg text-gray-700 mb-12 leading-relaxed" }, "Chaque parcours commence par un premier pas. Le v\u00F4tre commence ici, maintenant. Dites-nous qui vous \u00EAtes, ce que vous aimez, comment vous vivez \u2014 et nous transformerons ces r\u00E9ponses en un programme nutritionnel qui vous ressemble vraiment, pas un coach g\u00E9n\u00E9rique, mais VOTRE compagnon."),
                     react_1.default.createElement("p", { className: "text-gray-600 mb-12 leading-relaxed" }, "Comptez environ 5 minutes, r\u00E9pondez \u00E0 votre rythme, et sachez que tout reste modifiable \u00E0 tout moment. Rien n'est grav\u00E9 dans le marbre : vos r\u00E9ponses \u00E9volueront avec vous. C'est parti ? \uD83C\uDF3F"),
                     react_1.default.createElement("button", { onClick: handleOnboardingNext, className: "px-8 py-4 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl transition text-lg" }, "Commencer \u2192")))),
@@ -941,7 +930,7 @@ const NutriFlow = () => {
                                     setOnboardingData(prev => ({ ...prev, healthPermissions: true }));
                                     setOnboardingStep(1);
                                 }, className: "flex-1 px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl transition" }, "Autoriser l'acc\u00E8s")))))),
-            typeof onboardingStep === 'number' && (react_1.default.createElement("div", { className: "max-w-3xl mx-auto px-4 py-8" },
+            typeof onboardingStep === 'number' && (react_1.default.createElement("div", { className: "max-w-3xl mx-auto px-4 py-4 md:py-8 pb-24" },
                 react_1.default.createElement("div", { className: "mb-8" },
                     react_1.default.createElement("div", { className: "flex justify-between items-center mb-3" },
                         react_1.default.createElement("h1", { className: "text-2xl font-bold text-gray-800", style: { fontFamily: 'Fraunces' } }, "\uD83C\uDF3F Premiers pas"),
@@ -953,8 +942,8 @@ const NutriFlow = () => {
                             "%")),
                     react_1.default.createElement("div", { className: "w-full bg-gray-200 rounded-full h-2" },
                         react_1.default.createElement("div", { className: "bg-green-500 h-2 rounded-full transition-all duration-300", style: { width: `${(onboardingStep / 11) * 100}%` } }))),
-                onboardingStep === 1 && (react_1.default.createElement("div", { className: "bg-white rounded-2xl shadow-lg p-8 mb-6 space-y-6" },
-                    react_1.default.createElement("h2", { className: "text-3xl font-bold mb-2", style: { fontFamily: 'Fraunces' } }, "\uD83D\uDC64 Identit\u00E9"),
+                onboardingStep === 1 && (react_1.default.createElement("div", { className: "bg-white rounded-2xl shadow-lg p-4 md:p-8 mb-6 space-y-6" },
+                    react_1.default.createElement("h2", { className: "text-2xl md:text-3xl font-bold mb-2", style: { fontFamily: 'Fraunces' } }, "\uD83D\uDC64 Identit\u00E9"),
                     react_1.default.createElement("p", { className: "text-gray-600" }, "Dites-nous qui vous \u00EAtes"),
                     react_1.default.createElement("div", null,
                         react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, "\uD83C\uDFF7\uFE0F Pr\u00E9nom"),
@@ -973,11 +962,11 @@ const NutriFlow = () => {
                             react_1.default.createElement("input", { type: "file", accept: "image/*", onChange: handleOnboardingPhoto, className: "hidden" }),
                             react_1.default.createElement("span", { className: "text-gray-600" }, "Cliquez pour ajouter une photo")),
                         onboardingData.photo && (react_1.default.createElement("img", { src: onboardingData.photo, alt: "Preview", className: "w-32 h-32 rounded-xl object-cover mt-4" }))))),
-                onboardingStep === 2 && (react_1.default.createElement("div", { className: "bg-white rounded-2xl shadow-lg p-8 mb-6 space-y-6" },
-                    react_1.default.createElement("h2", { className: "text-3xl font-bold mb-2", style: { fontFamily: 'Fraunces' } }, "\uD83D\uDCCF Mesures corporelles"),
+                onboardingStep === 2 && (react_1.default.createElement("div", { className: "bg-white rounded-2xl shadow-lg p-4 md:p-8 mb-6 space-y-6" },
+                    react_1.default.createElement("h2", { className: "text-2xl md:text-3xl font-bold mb-2", style: { fontFamily: 'Fraunces' } }, "\uD83D\uDCCF Mesures corporelles"),
                     react_1.default.createElement("div", { className: "bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-4" },
                         react_1.default.createElement("p", { className: "text-sm text-blue-900" }, "\uD83D\uDCF2 Si vous avez autoris\u00E9 l'acc\u00E8s sant\u00E9, ces donn\u00E9es seront pr\u00E9remplies")),
-                    react_1.default.createElement("div", { className: "grid grid-cols-2 gap-4" },
+                    react_1.default.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-4" },
                         react_1.default.createElement("div", null,
                             react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, "\uD83D\uDCD0 Taille"),
                             react_1.default.createElement("div", { className: "flex gap-2" },
@@ -1002,9 +991,9 @@ const NutriFlow = () => {
                             react_1.default.createElement("select", { value: onboardingData.masseMaigreUnit, onChange: (e) => handleOnboardingChange('masseMaigreUnit', e.target.value), className: "px-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none bg-white" },
                                 react_1.default.createElement("option", { value: "%" }, "%"),
                                 react_1.default.createElement("option", { value: "kg" }, "kg")))))),
-                onboardingStep === 3 && (react_1.default.createElement("div", { className: "bg-white rounded-2xl shadow-lg p-8 mb-6 space-y-6" },
-                    react_1.default.createElement("h2", { className: "text-3xl font-bold mb-2", style: { fontFamily: 'Fraunces' } }, "\uD83C\uDFAF Objectifs"),
-                    react_1.default.createElement("div", { className: "grid grid-cols-2 gap-4" },
+                onboardingStep === 3 && (react_1.default.createElement("div", { className: "bg-white rounded-2xl shadow-lg p-4 md:p-8 mb-6 space-y-6" },
+                    react_1.default.createElement("h2", { className: "text-2xl md:text-3xl font-bold mb-2", style: { fontFamily: 'Fraunces' } }, "\uD83C\uDFAF Objectifs"),
+                    react_1.default.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-4" },
                         react_1.default.createElement("div", null,
                             react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, "\u2696\uFE0F Poids vis\u00E9"),
                             react_1.default.createElement("div", { className: "flex gap-2" },
@@ -1059,8 +1048,8 @@ const NutriFlow = () => {
                         react_1.default.createElement("p", { className: "text-green-900 font-medium" },
                             "\uD83D\uDCC5 Date estim\u00E9e : ",
                             new Date(onboardingData.dateTarget).toLocaleDateString('fr-FR')))))),
-                onboardingStep === 4 && (react_1.default.createElement("div", { className: "bg-white rounded-2xl shadow-lg p-8 mb-6 space-y-6" },
-                    react_1.default.createElement("h2", { className: "text-3xl font-bold mb-2", style: { fontFamily: 'Fraunces' } }, "\uD83E\uDD57 Pr\u00E9f\u00E9rences alimentaires"),
+                onboardingStep === 4 && (react_1.default.createElement("div", { className: "bg-white rounded-2xl shadow-lg p-4 md:p-8 mb-6 space-y-6" },
+                    react_1.default.createElement("h2", { className: "text-2xl md:text-3xl font-bold mb-2", style: { fontFamily: 'Fraunces' } }, "\uD83E\uDD57 Pr\u00E9f\u00E9rences alimentaires"),
                     react_1.default.createElement("p", { className: "text-gray-600" }, "Votre choix influence le th\u00E8me visuel de l'app"),
                     react_1.default.createElement("div", null,
                         react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-3" }, "Type de r\u00E9gime"),
@@ -1086,11 +1075,11 @@ const NutriFlow = () => {
                     react_1.default.createElement("div", null,
                         react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, "\uD83D\uDE24 Aliments d\u00E9test\u00E9s"),
                         react_1.default.createElement("input", { type: "text", placeholder: "ex: c\u00E9leri, coriandre, foie...", value: onboardingData.alimentsDetestes, onChange: (e) => handleOnboardingChange('alimentsDetestes', e.target.value), className: "w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none" })))),
-                onboardingStep === 5 && (react_1.default.createElement("div", { className: "bg-white rounded-2xl shadow-lg p-8 mb-6 space-y-6" },
-                    react_1.default.createElement("h2", { className: "text-3xl font-bold mb-2", style: { fontFamily: 'Fraunces' } }, "\u23F0 Rythme alimentaire"),
+                onboardingStep === 5 && (react_1.default.createElement("div", { className: "bg-white rounded-2xl shadow-lg p-4 md:p-8 mb-6 space-y-6" },
+                    react_1.default.createElement("h2", { className: "text-2xl md:text-3xl font-bold mb-2", style: { fontFamily: 'Fraunces' } }, "\u23F0 Rythme alimentaire"),
                     react_1.default.createElement("div", null,
                         react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-3" }, "Quels repas prenez-vous ?"),
-                        react_1.default.createElement("div", { className: "grid grid-cols-2 gap-3" }, MEAL_TYPES_CONFIG.map(meal => (react_1.default.createElement("button", { key: meal.id, onClick: () => {
+                        react_1.default.createElement("div", { className: "grid grid-cols-2 sm:grid-cols-3 gap-3" }, MEAL_TYPES_CONFIG.map(meal => (react_1.default.createElement("button", { key: meal.id, onClick: () => {
                                 setOnboardingData(prev => {
                                     const updated = prev.selectedMeals.includes(meal.id)
                                         ? prev.selectedMeals.filter(m => m !== meal.id)
@@ -1105,7 +1094,7 @@ const NutriFlow = () => {
                             react_1.default.createElement("div", { className: "text-xs" }, meal.label)))))),
                     react_1.default.createElement("div", null,
                         react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-3" }, "\uD83D\uDD50 Horaires des repas"),
-                        react_1.default.createElement("div", { className: "grid grid-cols-2 gap-4" }, MEAL_TYPES_CONFIG.filter(m => onboardingData.selectedMeals.includes(m.id)).map(meal => (react_1.default.createElement("div", { key: meal.id },
+                        react_1.default.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-4" }, MEAL_TYPES_CONFIG.filter(m => onboardingData.selectedMeals.includes(m.id)).map(meal => (react_1.default.createElement("div", { key: meal.id },
                             react_1.default.createElement("label", { className: "block text-xs text-gray-600 mb-2" }, meal.label),
                             react_1.default.createElement("input", { type: "time", value: onboardingData.mealTimes[meal.id] || meal.defaultTime, onChange: (e) => {
                                     const newTime = e.target.value;
@@ -1121,8 +1110,8 @@ const NutriFlow = () => {
                             onboardingData.ifDuration,
                             "h"))),
                     react_1.default.createElement("p", { className: "text-xs text-gray-600 text-center" }, "Ces repas structureront votre planning quotidien"))),
-                onboardingStep === 6 && (react_1.default.createElement("div", { className: "bg-white rounded-2xl shadow-lg p-8 mb-6 space-y-6" },
-                    react_1.default.createElement("h2", { className: "text-3xl font-bold mb-2", style: { fontFamily: 'Fraunces' } }, "\uD83C\uDFC3 Activit\u00E9 & travail"),
+                onboardingStep === 6 && (react_1.default.createElement("div", { className: "bg-white rounded-2xl shadow-lg p-4 md:p-8 mb-6 space-y-6" },
+                    react_1.default.createElement("h2", { className: "text-2xl md:text-3xl font-bold mb-2", style: { fontFamily: 'Fraunces' } }, "\uD83C\uDFC3 Activit\u00E9 & travail"),
                     react_1.default.createElement("div", null,
                         react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-3" }, "\uD83D\uDCBC Type de travail"),
                         react_1.default.createElement("div", { className: "space-y-2" }, WORK_TYPES.map(work => (react_1.default.createElement("label", { key: work.value, className: "flex items-start p-3 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-green-300 transition" },
@@ -1218,8 +1207,8 @@ const NutriFlow = () => {
                                 : 'border-gray-200 text-gray-700 hover:border-green-300'}` },
                             react_1.default.createElement("p", { className: "font-medium text-sm" }, level.label),
                             react_1.default.createElement("p", { className: "text-xs text-gray-600" }, level.desc)))))))),
-                onboardingStep === 7 && (react_1.default.createElement("div", { className: "bg-white rounded-2xl shadow-lg p-8 mb-6 space-y-6" },
-                    react_1.default.createElement("h2", { className: "text-3xl font-bold mb-2", style: { fontFamily: 'Fraunces' } }, "\uD83C\uDF73 Cuisine & \u00E9quipements"),
+                onboardingStep === 7 && (react_1.default.createElement("div", { className: "bg-white rounded-2xl shadow-lg p-4 md:p-8 mb-6 space-y-6" },
+                    react_1.default.createElement("h2", { className: "text-2xl md:text-3xl font-bold mb-2", style: { fontFamily: 'Fraunces' } }, "\uD83C\uDF73 Cuisine & \u00E9quipements"),
                     react_1.default.createElement("p", { className: "text-gray-600" }, "Votre style de cuisine nous permet d'adapter les recettes : du batch cooking dominical pour les planificateurs, aux plats express pour les plus press\u00E9s."),
                     react_1.default.createElement("div", null,
                         react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-3" }, "\uD83D\uDC69\u200D\uD83C\uDF73 Votre style"),
@@ -1280,13 +1269,13 @@ const NutriFlow = () => {
                                 : 'border-gray-200 text-gray-700 hover:border-green-300'}` }, level.label))))),
                     react_1.default.createElement("div", null,
                         react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-3" }, "\uD83D\uDD27 Vos \u00E9quipements de cuisine"),
-                        react_1.default.createElement("div", { className: "grid grid-cols-2 gap-3" }, EQUIPEMENTS_LIST.map(equip => (react_1.default.createElement("button", { key: equip.id, onClick: () => handleEquipements(equip.id), className: `p-3 rounded-xl border-2 text-center font-medium transition ${onboardingData.equipements.includes(equip.id)
+                        react_1.default.createElement("div", { className: "grid grid-cols-3 sm:grid-cols-4 gap-3" }, EQUIPEMENTS_LIST.map(equip => (react_1.default.createElement("button", { key: equip.id, onClick: () => handleEquipements(equip.id), className: `p-3 rounded-xl border-2 text-center font-medium transition ${onboardingData.equipements.includes(equip.id)
                                 ? 'border-green-500 bg-green-50 text-green-700'
                                 : 'border-gray-200 text-gray-700 hover:border-green-300'}` },
                             react_1.default.createElement("div", { className: "text-lg mb-1" }, equip.emoji),
                             react_1.default.createElement("div", { className: "text-xs" }, equip.label)))))))),
-                onboardingStep === 8 && (react_1.default.createElement("div", { className: "bg-white rounded-2xl shadow-lg p-8 mb-6 space-y-6" },
-                    react_1.default.createElement("h2", { className: "text-3xl font-bold mb-2", style: { fontFamily: 'Fraunces' } }, "\uD83D\uDC8A Compl\u00E9ments alimentaires"),
+                onboardingStep === 8 && (react_1.default.createElement("div", { className: "bg-white rounded-2xl shadow-lg p-4 md:p-8 mb-6 space-y-6" },
+                    react_1.default.createElement("h2", { className: "text-2xl md:text-3xl font-bold mb-2", style: { fontFamily: 'Fraunces' } }, "\uD83D\uDC8A Compl\u00E9ments alimentaires"),
                     react_1.default.createElement("div", { className: "flex items-center gap-4 p-4 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-green-300 transition", onClick: () => handleOnboardingChange('complements', !onboardingData.complements) },
                         react_1.default.createElement("input", { type: "checkbox", checked: onboardingData.complements, onChange: () => { }, className: "w-5 h-5" }),
                         react_1.default.createElement("span", { className: "text-gray-700 font-medium" }, "Prenez-vous des compl\u00E9ments alimentaires ?")),
@@ -1299,8 +1288,8 @@ const NutriFlow = () => {
                             comp,
                             react_1.default.createElement("button", { onClick: () => handleRemoveComplement(comp), className: "text-blue-600 hover:text-blue-900" }, "\u00D7"))))))),
                     react_1.default.createElement("p", { className: "text-xs text-gray-600" }, "\uD83D\uDCA1 Le scan de codes-barres sera disponible prochainement"))),
-                onboardingStep === 9 && (react_1.default.createElement("div", { className: "bg-white rounded-2xl shadow-lg p-8 mb-6 space-y-6" },
-                    react_1.default.createElement("h2", { className: "text-3xl font-bold mb-2", style: { fontFamily: 'Fraunces' } }, "\uD83D\uDCCD Localisation"),
+                onboardingStep === 9 && (react_1.default.createElement("div", { className: "bg-white rounded-2xl shadow-lg p-4 md:p-8 mb-6 space-y-6" },
+                    react_1.default.createElement("h2", { className: "text-2xl md:text-3xl font-bold mb-2", style: { fontFamily: 'Fraunces' } }, "\uD83D\uDCCD Localisation"),
                     react_1.default.createElement("div", { className: "bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-6 text-sm text-blue-900" }, "\uD83D\uDCCD Votre localisation nous permet de vous proposer les fruits et l\u00E9gumes de saison de votre r\u00E9gion, de mettre en avant les produits locaux et sp\u00E9cialit\u00E9s r\u00E9gionales, de rep\u00E9rer les march\u00E9s locaux et leurs horaires, et de r\u00E9f\u00E9rencer les magasins proches pour optimiser votre liste de courses. Plus c'est pr\u00E9cis, plus nos recommandations seront pertinentes et \u00E9conomiques !"),
                     react_1.default.createElement("div", null,
                         react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-3" }, "\uD83C\uDF0D Pays"),
@@ -1312,36 +1301,28 @@ const NutriFlow = () => {
                     react_1.default.createElement("div", null,
                         react_1.default.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-2" }, "\uD83C\uDFD9\uFE0F Ville"),
                         react_1.default.createElement("input", { type: "text", placeholder: "ex: Lyon, 69000", value: onboardingData.ville, onChange: (e) => handleOnboardingChange('ville', e.target.value), className: "w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none" })))),
-                onboardingStep === 10 && (react_1.default.createElement("div", { className: "bg-white rounded-2xl shadow-lg p-8 mb-6 space-y-6" },
-                    react_1.default.createElement("h2", { className: "text-3xl font-bold mb-2", style: { fontFamily: 'Fraunces' } }, "\u2705 R\u00E9capitulatif"),
-                    react_1.default.createElement("div", { className: "grid grid-cols-2 gap-4" },
+                onboardingStep === 10 && (react_1.default.createElement("div", { className: "bg-white rounded-2xl shadow-lg p-4 md:p-8 mb-6 space-y-6" },
+                    react_1.default.createElement("h2", { className: "text-2xl md:text-3xl font-bold mb-2", style: { fontFamily: 'Fraunces' } }, "\u2705 R\u00E9capitulatif"),
+                    react_1.default.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-4" },
                         react_1.default.createElement("div", { className: "bg-green-50 border-2 border-green-200 rounded-xl p-4" },
                             react_1.default.createElement("p", { className: "text-sm text-gray-600 mb-1" }, "Pr\u00E9nom"),
                             react_1.default.createElement("p", { className: "font-bold text-gray-900" }, onboardingData.prenom || '—')),
                         react_1.default.createElement("div", { className: "bg-green-50 border-2 border-green-200 rounded-xl p-4" },
                             react_1.default.createElement("p", { className: "text-sm text-gray-600 mb-1" }, "\u00C2ge"),
-                            react_1.default.createElement("p", { className: "font-bold text-gray-900" },
-                                calculateAge(onboardingData.dateNaissance),
-                                " ans")),
+                            react_1.default.createElement("p", { className: "font-bold text-gray-900" }, onboardingData.dateNaissance ? `${calculateAge(onboardingData.dateNaissance)} ans` : '—')),
                         react_1.default.createElement("div", { className: "bg-green-50 border-2 border-green-200 rounded-xl p-4" },
                             react_1.default.createElement("p", { className: "text-sm text-gray-600 mb-1" }, "Poids"),
-                            react_1.default.createElement("p", { className: "font-bold text-gray-900" },
-                                onboardingData.poids,
-                                " kg")),
+                            react_1.default.createElement("p", { className: "font-bold text-gray-900" }, onboardingData.poids ? `${onboardingData.poids} kg` : '—')),
                         react_1.default.createElement("div", { className: "bg-green-50 border-2 border-green-200 rounded-xl p-4" },
                             react_1.default.createElement("p", { className: "text-sm text-gray-600 mb-1" }, "Taille"),
-                            react_1.default.createElement("p", { className: "font-bold text-gray-900" },
-                                onboardingData.taille,
-                                " cm"))),
+                            react_1.default.createElement("p", { className: "font-bold text-gray-900" }, onboardingData.taille ? `${onboardingData.taille} cm` : '—'))),
                     (() => {
                         const tdee = calculateTDEE(onboardingData);
                         const macros = calculateMacros(tdee);
                         return (react_1.default.createElement(react_1.default.Fragment, null,
                             react_1.default.createElement("div", { className: "bg-blue-50 border-2 border-blue-200 rounded-xl p-6" },
                                 react_1.default.createElement("h3", { className: "font-bold text-blue-900 mb-4" }, "\uD83D\uDCCA Vos besoins caloriques"),
-                                react_1.default.createElement("p", { className: "text-3xl font-bold text-blue-600 mb-4" },
-                                    tdee,
-                                    " kcal/jour"),
+                                react_1.default.createElement("p", { className: "text-3xl font-bold text-blue-600 mb-4" }, tdee === 0 ? 'Données insuffisantes' : `${tdee} kcal/jour`),
                                 react_1.default.createElement("div", { className: "space-y-2 text-sm text-gray-700" },
                                     react_1.default.createElement("p", null,
                                         "\uD83E\uDD5A Prot\u00E9ines: ",
@@ -1363,8 +1344,8 @@ const NutriFlow = () => {
                                         "%)")))));
                     })(),
                     react_1.default.createElement("p", { className: "text-center text-gray-600" }, "Vous \u00EAtes pr\u00EAt \u00E0 commencer votre voyage nutritionnel!"))),
-                onboardingStep === 11 && (react_1.default.createElement("div", { className: "bg-white rounded-2xl shadow-lg p-8 mb-6 space-y-6" },
-                    react_1.default.createElement("h2", { className: "text-3xl font-bold mb-2", style: { fontFamily: 'Fraunces' } }, "\uD83E\uDDCA Inventaire initial"),
+                onboardingStep === 11 && (react_1.default.createElement("div", { className: "bg-white rounded-2xl shadow-lg p-4 md:p-8 mb-6 space-y-6" },
+                    react_1.default.createElement("h2", { className: "text-2xl md:text-3xl font-bold mb-2", style: { fontFamily: 'Fraunces' } }, "\uD83E\uDDCA Inventaire initial"),
                     react_1.default.createElement("p", { className: "text-gray-600" }, "Avant de commencer, faisons le tour de vos placards !"),
                     react_1.default.createElement("p", { className: "text-sm text-gray-600" }, "Frigo, cong\u00E9lateur, cellier... \u00C7a nous aidera \u00E0 vous proposer des recettes avec ce que vous avez sous la main !"),
                     react_1.default.createElement("div", { className: "relative" },
@@ -1386,7 +1367,7 @@ const NutriFlow = () => {
                                     initialInventory: prev.initialInventory.filter((_, i) => i !== idx)
                                 }));
                             }, className: "text-red-600 hover:text-red-900" }, "\u00D7")))))))),
-                typeof onboardingStep === 'number' && (react_1.default.createElement("div", { className: "flex gap-4 mb-8" },
+                typeof onboardingStep === 'number' && (react_1.default.createElement("div", { className: "sticky bottom-0 bg-gradient-to-t from-green-50 via-green-50 to-transparent pt-6 pb-4 -mx-4 px-4 flex gap-4" },
                     react_1.default.createElement("button", { onClick: handleOnboardingPrev, disabled: onboardingStep === 1, className: "flex-1 px-6 py-3 bg-gray-300 hover:bg-gray-400 disabled:bg-gray-200 disabled:text-gray-400 text-gray-800 font-bold rounded-xl transition flex items-center justify-center gap-2" }, "\u2190 Pr\u00E9c\u00E9dent"),
                     onboardingStep < 11 ? (react_1.default.createElement("button", { onClick: handleOnboardingNext, className: "flex-1 px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl transition flex items-center justify-center gap-2" }, "Suivant \u2192")) : (react_1.default.createElement(react_1.default.Fragment, null,
                         react_1.default.createElement("button", { onClick: () => {
@@ -1403,7 +1384,7 @@ const NutriFlow = () => {
                                 localStorage.setItem('nf_onboarding_done', 'true');
                                 setCurrentScreen('app');
                                 addXP(50, 'Onboarding complété');
-                            }, className: "flex-1 px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl transition" }, "\u23ED\uFE0F Passer cette \u00E9tape"),
+                            }, className: "flex-1 px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl transition" }, "\u23ED\uFE0F Terminer sans inventaire"),
                         react_1.default.createElement("button", { onClick: handleOnboardingNext, className: "flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl transition" }, "\u2705 Terminer")))))))));
     }
     // MAIN APP SCREEN
@@ -1879,21 +1860,15 @@ const NutriFlow = () => {
 };
 exports.default = NutriFlow;
   </script>
-
   <script>
-  // Mount the app
   (function() {
     try {
       var App = exports.default || module.exports.default || module.exports;
-      if (!App) {
-        throw new Error('NutriFlow component not found in exports');
-      }
+      if (!App) throw new Error('NutriFlow component not found');
       var root = ReactDOM.createRoot(document.getElementById('root'));
       root.render(React.createElement(App));
-      console.log('NutriFlow mounted successfully');
     } catch(e) {
-      console.error('Mount error:', e);
-      document.getElementById('root').innerHTML = '<div style="padding:40px;font-family:monospace;background:#fee;color:#900;border:2px solid #f00;margin:20px;border-radius:12px;"><h2>Erreur de montage</h2><pre>' + e.message + '\n' + (e.stack || '') + '</pre></div>';
+      document.getElementById('root').innerHTML = '<div style="padding:20px;font-family:monospace;background:#fee;color:#900;border:2px solid #f00;margin:10px;border-radius:12px;"><h2>Erreur de montage</h2><pre style="white-space:pre-wrap;">' + e.message + '\n' + (e.stack || '') + '</pre></div>';
     }
   })();
   </script>
