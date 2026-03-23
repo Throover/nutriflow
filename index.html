@@ -65,6 +65,7 @@
   })();
   </script>
   <script>
+  <script>
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const react_1 = require("react");
@@ -1327,21 +1328,18 @@ const NutriFlow = () => {
                                     react_1.default.createElement("p", null,
                                         "\uD83E\uDD5A Prot\u00E9ines: ",
                                         macros.proteines,
-                                        "g (",
-                                        Math.round((macros.proteines * 4) / tdee * 100),
-                                        "%)"),
+                                        "g ",
+                                        tdee > 0 ? `(${Math.round((macros.proteines * 4) / tdee * 100)}%)` : ''),
                                     react_1.default.createElement("p", null,
                                         "\uD83C\uDF3E Glucides: ",
                                         macros.glucides,
-                                        "g (",
-                                        Math.round((macros.glucides * 4) / tdee * 100),
-                                        "%)"),
+                                        "g ",
+                                        tdee > 0 ? `(${Math.round((macros.glucides * 4) / tdee * 100)}%)` : ''),
                                     react_1.default.createElement("p", null,
                                         "\uD83E\uDD51 Lipides: ",
                                         macros.lipides,
-                                        "g (",
-                                        Math.round((macros.lipides * 9) / tdee * 100),
-                                        "%)")))));
+                                        "g ",
+                                        tdee > 0 ? `(${Math.round((macros.lipides * 9) / tdee * 100)}%)` : '')))));
                     })(),
                     react_1.default.createElement("p", { className: "text-center text-gray-600" }, "Vous \u00EAtes pr\u00EAt \u00E0 commencer votre voyage nutritionnel!"))),
                 onboardingStep === 11 && (react_1.default.createElement("div", { className: "bg-white rounded-2xl shadow-lg p-4 md:p-8 mb-6 space-y-6" },
@@ -1369,7 +1367,7 @@ const NutriFlow = () => {
                             }, className: "text-red-600 hover:text-red-900" }, "\u00D7")))))))),
                 typeof onboardingStep === 'number' && (react_1.default.createElement("div", { className: "sticky bottom-0 bg-gradient-to-t from-green-50 via-green-50 to-transparent pt-6 pb-4 -mx-4 px-4 flex gap-4" },
                     react_1.default.createElement("button", { onClick: handleOnboardingPrev, disabled: onboardingStep === 1, className: "flex-1 px-6 py-3 bg-gray-300 hover:bg-gray-400 disabled:bg-gray-200 disabled:text-gray-400 text-gray-800 font-bold rounded-xl transition flex items-center justify-center gap-2" }, "\u2190 Pr\u00E9c\u00E9dent"),
-                    onboardingStep < 11 ? (react_1.default.createElement("button", { onClick: handleOnboardingNext, className: "flex-1 px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl transition flex items-center justify-center gap-2" }, "Suivant \u2192")) : (react_1.default.createElement(react_1.default.Fragment, null,
+                    onboardingStep < 11 ? (react_1.default.createElement("button", { onClick: handleOnboardingNext, className: "flex-1 px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl transition flex items-center justify-center gap-2" }, "Suivant \u2192")) : (react_1.default.createElement("div", { className: "flex flex-col sm:flex-row gap-2 flex-1" },
                         react_1.default.createElement("button", { onClick: () => {
                                 const tdee = calculateTDEE(onboardingData);
                                 const macros = calculateMacros(tdee);
@@ -1384,8 +1382,8 @@ const NutriFlow = () => {
                                 localStorage.setItem('nf_onboarding_done', 'true');
                                 setCurrentScreen('app');
                                 addXP(50, 'Onboarding complété');
-                            }, className: "flex-1 px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl transition" }, "\u23ED\uFE0F Terminer sans inventaire"),
-                        react_1.default.createElement("button", { onClick: handleOnboardingNext, className: "flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl transition" }, "\u2705 Terminer")))))))));
+                            }, className: "flex-1 px-4 py-3 bg-green-400 hover:bg-green-500 text-white font-bold rounded-xl transition text-sm" }, "Passer cette \u00E9tape"),
+                        react_1.default.createElement("button", { onClick: handleOnboardingNext, className: "flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl transition text-sm" }, "\u2705 Terminer")))))))));
     }
     // MAIN APP SCREEN
     if (currentScreen === 'app' && userProfile) {
@@ -1861,16 +1859,16 @@ const NutriFlow = () => {
 exports.default = NutriFlow;
   </script>
   <script>
-  (function() {
-    try {
-      var App = exports.default || module.exports.default || module.exports;
-      if (!App) throw new Error('NutriFlow component not found');
-      var root = ReactDOM.createRoot(document.getElementById('root'));
-      root.render(React.createElement(App));
-    } catch(e) {
-      document.getElementById('root').innerHTML = '<div style="padding:20px;font-family:monospace;background:#fee;color:#900;border:2px solid #f00;margin:10px;border-radius:12px;"><h2>Erreur de montage</h2><pre style="white-space:pre-wrap;">' + e.message + '\n' + (e.stack || '') + '</pre></div>';
+  var App = exports.default || NutriFlow;
+  if (!App && typeof exports === 'object') {
+    var keys = Object.keys(exports);
+    for (var i = 0; i < keys.length; i++) {
+      if (typeof exports[keys[i]] === 'function') { App = exports[keys[i]]; break; }
     }
-  })();
+  }
+  if (!App) App = window.NutriFlow || function() { return React.createElement('div', null, 'App not found'); };
+  var root = ReactDOM.createRoot(document.getElementById('root'));
+  root.render(React.createElement(App));
   </script>
 </body>
 </html>
